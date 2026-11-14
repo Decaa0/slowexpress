@@ -1,7 +1,7 @@
 # SRS — ScanDine: QR table ordering for shops (CPE 334 Project, Theme 4: E-Commerce / Ordering)
 
 ## 1. Stakeholder problem and context
-Small shops lose time because customers queue or wait for staff just to order, and staff re-type paper orders. Each table carries a printed QR code. The customer scans it with their phone, which opens the menu of *that* shop already bound to *that* table, and orders without installing anything or signing in (guest). Customers who sign in become members and earn points and promotions. Staff see incoming orders for their shop and accept them. The product is shop-agnostic (name, tables and menu are data), and the first configured context is a **drink shop**. Real payment is excluded; payment is a simulated status.
+Small shops lose time because customers queue or wait for staff just to order, and staff re-type paper orders. Each table carries a printed QR code. The customer scans it with their phone, which opens the menu of *that* shop already bound to *that* table, and orders without installing anything or signing in (guest). Customers who sign in become members and earn points and promotions. Staff see incoming orders for their shop and accept them. The product is shop-agnostic (name, tables and menu are data), and the first configured context is the drink shop **Slow Express**. Real payment is excluded; payment is a simulated status.
 
 ## 2. Actors
 | Actor | Responsibility |
@@ -34,6 +34,8 @@ Excluded: real payment, delivery, self-registration, password recovery, email/SM
 | FR-13 | An operator manages tables and regenerates a table's QR code | 3 |
 | FR-14 | An operator views a daily sales summary (orders, revenue, top items) | 3 |
 | FR-15 | A guest or member adds items to their existing open order for the same table | 3 |
+| FR-19 | An order may carry an optional call name (up to 20 characters) chosen by the customer; staff see it on the order | 1 |
+| FR-20 | When an order is SERVED its call name is shown on a public "ready" board so the customer knows to collect the drink | 2 |
 | FR-17 | A member earns points when an order is served (1 point per 10 THB) and sees their balance | 2 |
 | FR-18 | An operator defines a simple promotion (percentage off for members) applied by the server to member orders | 2 |
 
@@ -53,6 +55,7 @@ Excluded: real payment, delivery, self-registration, password recovery, email/SM
 | BR-14 | A line has at most 3 distinct toppings; each topping must be available and belong to the same shop as the drink |
 | BR-15 | Line total = (drink price + sum of topping prices) × quantity, computed on the server; topping name and price are copied into the line when placed |
 | BR-16 | A line note is at most 100 characters |
+| BR-17 | callName is at most 20 characters and optional |
 | BR-12 | A guest session is bound to one table and expires in 3 hours; it cannot be used for another table or for operator operations |
 | BR-13 | Points and promotions apply only to members, never guests (Sprint 2) |
 | BR-11 | A table code must exist and be active to be used for an order |
