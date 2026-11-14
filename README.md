@@ -19,8 +19,10 @@ Run `cd server && npm run qr`, then open `docs/qr/index.html` and print on A4. E
 
 ## Tests and build
 ```bash
-cd server && npm test        # 30 tests: API/DB integration + unit (npx tsc --noEmit also passes)
-cd client && npm test        # 3 UI component tests (cup customizer)
+cd server && npm test        # 34 tests: API/DB integration + unit + QR sheet (npx tsc --noEmit also passes)
+cd client && npm test        # 10 UI component tests (customizer, refresh, invalid QR)
+cd client && npx playwright install chromium   # once
+cd client && npm run test:e2e   # AC-29 end to end, isolated temp database, ports 4005/5175
 cd client && npm run build   # type-check + production build
 ```
 
