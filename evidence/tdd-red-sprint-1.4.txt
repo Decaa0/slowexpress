@@ -1,0 +1,12 @@
+   × QR sheet (issue 1.4) > TEST-32: one printable card per table with shop, label, link and QR image 2ms
+   × QR sheet (issue 1.4) > is print-friendly: A4 page, cards never split across pages 0ms
+   × QR sheet (issue 1.4) > escapes HTML in shop and table names 0ms
+   × QR sheet (issue 1.4) > shows a clear message when there are no tables 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/qrSheet.test.ts > QR sheet (issue 1.4) > TEST-32: one printable card per table with shop, label, link and QR image
+AssertionError: expected undefined to be 2 // Object.is equality
+ FAIL  tests/unit/qrSheet.test.ts > QR sheet (issue 1.4) > is print-friendly: A4 page, cards never split across pages
+AssertionError: expected '' to contain '@media print'
+ FAIL  tests/unit/qrSheet.test.ts > QR sheet (issue 1.4) > escapes HTML in shop and table names
+AssertionError: expected '' to contain '&lt;script&gt;'
+ FAIL  tests/unit/qrSheet.test.ts > QR sheet (issue 1.4) > shows a clear message when there are no tables
