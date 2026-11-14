@@ -1,4 +1,4 @@
-# Sprint 1 Engineering Contracts — ScanDine / Slow Express (v1.0, written before implementation)
+# Sprint 1 Engineering Contracts — ScanDine / Slow Express (v1.1; v1.0 was written before implementation)
 
 Product: QR table ordering for shops; first context is the drink shop **Slow Express**. Roles: Guest (table-bound session), Member and Operator (email + password). All rules are enforced by the backend; the UI only mirrors them.
 
@@ -106,3 +106,4 @@ Shops: **Slow Express** and **Demo Cafe**. Tables: SE-1..SE-3 and DC-1..DC-2 wit
 | Version | Change | Reason |
 |---|---|---|
 | v1.0 | Initial Sprint 1 contracts F-01..F-06, AC-01..AC-30, STS | Written before any implementation (docs-first commit) |
+| v1.1 | AC-29 is now verified by an automated Playwright test (TEST-29, `client/e2e/journey.spec.ts`) instead of only manual screenshots, which stay in `evidence/shots/` as supporting evidence. Added TEST-31 (invalid QR screen, issue 1.3) and TEST-32 (printable QR sheet, issue 1.4); issues 1.1 and 1.2 added UI refresh component tests. Test counts are recorded in `release.md` | Contract matched to what was actually built and tested in Sprint 1 |
