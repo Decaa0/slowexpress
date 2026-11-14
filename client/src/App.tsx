@@ -3,6 +3,8 @@ import { api, ApiError, baht, getSession, setSession, type Menu, type Order, typ
 import Customizer, { type Config } from "./Customizer";
 import Cup from "./Cup";
 
+export const STAFF_REFRESH_MS = 10_000;
+export const ORDER_REFRESH_MS = 10_000;
 const G = "#0B7A46";
 const card: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 10, padding: 12, marginBottom: 10, background: "#fff" };
 const btn: React.CSSProperties = { background: G, color: "#fff", border: 0, borderRadius: 8, padding: "8px 16px", cursor: "pointer" };
@@ -31,20 +33,35 @@ function OrderCard({ o, onAccept, onOpen }: { o: Order; onAccept?: () => void; o
     {onAccept && o.status === "PLACED" && <button style={btn} onClick={onAccept}>Accept</button>}</div>);
 }
 
-function Orders({ staff, onOpen }: { staff: boolean; onOpen: (id: string) => void }) {
+export function Orders({ staff, onOpen }: { staff: boolean; onOpen: (id: string) => void }) {
   const [orders, setOrders] = useState<Order[] | null>(null); const [err, setErr] = useState("");
   const load = () => api<Order[]>("/orders").then(setOrders).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    if (!staff) return;
+    const timer = setInterval(load, STAFF_REFRESH_MS); // issue #1: new orders appear without a reload
+    return () => clearInterval(timer);
+  }, [staff]);
   async function accept(id: string) { setErr(""); try { await api(`/orders/${id}/accept`, { method: "POST" }); await load(); } catch (x) { setErr((x as Error).message); } }
   if (!orders) return <><Err msg={err} /><p>Loading orders…</p></>;
-  return (<div><h2>{staff ? "Incoming orders" : "My orders"}</h2><Err msg={err} />
+  return (<div><h2>{staff ? "Incoming orders" : "My orders"} {staff && <button onClick={() => load()}>Refresh</button>}</h2><Err msg={err} />
     {orders.length === 0 && <p>No orders yet.</p>}
     {orders.map((o) => <OrderCard key={o.id} o={o} onOpen={staff ? undefined : () => onOpen(o.id)} onAccept={staff ? () => accept(o.id) : undefined} />)}</div>);
 }
 
-function OrderDetail({ id, onBack }: { id: string; onBack: () => void }) {
+export function OrderDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [o, setO] = useState<Order | null>(null); const [err, setErr] = useState("");
-  useEffect(() => { api<Order>(`/orders/${id}`).then(setO).catch((e) => setErr(e.message)); }, [id]);
+  useEffect(() => {
+    let stopped = false; let timer: ReturnType<typeof setInterval> | undefined;
+    const load = () => api<Order>(`/orders/${id}`).then((x) => {
+      if (stopped) return;
+      setO(x);
+      if (x.status !== "PLACED" && timer) { clearInterval(timer); timer = undefined; } // issue #5: stop once the status has moved on
+    }).catch((e) => { if (stopped) return; setErr(e.message); if (timer) { clearInterval(timer); timer = undefined; } }); // an error (e.g. 404) ends polling
+    load();
+    timer = setInterval(load, ORDER_REFRESH_MS);
+    return () => { stopped = true; if (timer) clearInterval(timer); };
+  }, [id]);
   return (<div><button onClick={onBack}>← Back</button><h2>Order</h2><Err msg={err} />
     {o && <><OrderCard o={o} /><p data-testid="server-total"><b>Total (computed by server): {baht(o.totalCents)}</b> · Payment: {o.paymentStatus}</p></>}</div>);
 }
@@ -91,7 +108,7 @@ export default function App() {
   const [tableCode, setTableCode] = useState<string | null>(qrCode ?? sessionStorage.getItem("tableCode"));
   const [shell, setShell] = useState<Shell | null>(null); const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<"menu" | "orders" | "login" | { order: string }>(staffPage ? "orders" : "menu");
-  const [err, setErr] = useState(""); const [ready, setReady] = useState(false);
+  const [err, setErr] = useState(""); const [ready, setReady] = useState(false); const [invalidQr, setInvalidQr] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -102,7 +119,11 @@ export default function App() {
           if (!getSession()) { const g = await api<{ token: string }>("/guest-sessions", { method: "POST", body: { tableCode: qrCode } }); setSession({ token: g.token, kind: "guest" }); }
         }
         if (getSession()?.kind === "user") setUser(await api<User>("/auth/me"));
-      } catch (e) { if (!(e instanceof ApiError && e.status === 401)) setErr((e as Error).message); setSession(null); }
+      } catch (e) {
+        // issue #6: a bad or inactive table code is a normal situation, not a crash. No guest session is created for it.
+        if (qrCode && e instanceof ApiError && e.status === 404) { setInvalidQr(true); setReady(true); return; }
+        if (!(e instanceof ApiError && e.status === 401)) setErr((e as Error).message); setSession(null);
+      }
       setReady(true);
     })();
   }, []);
@@ -115,10 +136,12 @@ export default function App() {
       <h1 style={{ color: G, margin: 0, fontSize: 24 }}>Slow Express{shell ? ` · Table ${shell.table}` : ""}</h1>
       <span>{user ? <>{user.fullName} ({user.role}) <button onClick={logout}>Logout</button></> : !staffPage && <button onClick={() => setView("login")}>Member sign in</button>}</span></header>
     <Err msg={err} />
+    {invalidQr && <div role="alert" style={card}><h2 style={{ marginTop: 0 }}>This QR code is not valid</h2>
+      <p>It may be damaged or switched off. Please ask the staff for help, or scan the code on another table.</p></div>}
     {staffPage && !staff && <Login staff onDone={(u) => { setUser(u); setView("orders"); }} />}
     {staffPage && staff && <Orders staff onOpen={() => {}} />}
-    {!staffPage && !getSession() && <p>Scan a table QR code to start ordering.</p>}
-    {!staffPage && getSession() && <>
+    {!staffPage && !invalidQr && !getSession() && <p>Scan a table QR code to start ordering.</p>}
+    {!staffPage && !invalidQr && getSession() && <>
       <nav style={{ marginBottom: 12 }}><button onClick={() => setView("menu")}>Menu</button> <button onClick={() => setView("orders")}>My orders</button></nav>
       {view === "login" && <Login staff={false} onDone={(u) => { setUser(u); setView("menu"); }} />}
       {view === "menu" && <MenuView tableCode={tableCode} onPlaced={(id) => setView({ order: id })} />}

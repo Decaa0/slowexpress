@@ -14,10 +14,15 @@ Open a printed link (`http://localhost:5173/t/<code>`) or scan a PNG from `docs/
 
 Demo accounts (synthetic, local only; password is `DEMO_PASSWORD` in `server/src/seedData.ts`): members `alice@demo.test`, `bob@demo.test`; staff `slow@demo.test` (Slow Express), `cafe@demo.test` (Demo Cafe). Guests need no account.
 
+## Printable table QR sheet
+Run `cd server && npm run qr`, then open `docs/qr/index.html` and print on A4. Each active table gets a card with its shop, table label and embedded QR image. Inactive tables are excluded. The default links use localhost (same-computer demo only). For phones, set `PUBLIC_URL` to the reachable web app address before generating, for example `PUBLIC_URL=http://192.168.1.10:5173 npm run qr`; replace that example with your actual address. Regenerate after seeding a fresh database or changing the address. The checked-in HTML is a demo output, not a deployment configuration.
+
 ## Tests and build
 ```bash
-cd server && npm test        # 30 tests: API/DB integration + unit (npx tsc --noEmit also passes)
-cd client && npm test        # 3 UI component tests (cup customizer)
+cd server && npm test        # 34 tests: API/DB integration + unit + QR sheet (npx tsc --noEmit also passes)
+cd client && npm test        # 10 UI component tests (customizer, refresh, invalid QR)
+cd client && npx playwright install chromium   # once
+cd client && npm run test:e2e   # AC-29 end to end, isolated temp database, ports 4005/5175
 cd client && npm run build   # type-check + production build
 ```
 
