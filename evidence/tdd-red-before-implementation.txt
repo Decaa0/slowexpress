@@ -1,3 +1,5 @@
+# command: cd server && npx vitest run   | tests commit: 2f16ec2 (implementation not yet written)
+
 
  RUN  v2.1.9 /Users/yoswat/Downloads/scandine/server
 
