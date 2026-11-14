@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 // Fresh isolated database per invocation; never seed or reset the developer DB.
-const database = `file:${join(mkdtempSync(join(tmpdir(), 'slowexpress-e2e-')), 'test.db')}`;
+// Workers re-evaluate this file, so the path is created once and shared through the environment.
+const database = process.env.E2E_DATABASE_URL ?? `file:${join(mkdtempSync(join(tmpdir(), 'slowexpress-e2e-')), 'test.db')}`;
+process.env.E2E_DATABASE_URL = database;
 process.env.DATABASE_URL = database;
 export default defineConfig({
   testDir: './e2e', workers: 1, retries: 0, timeout: 45000,

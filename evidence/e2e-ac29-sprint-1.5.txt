@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 e2e/journey.spec.ts:5:1 › TEST-29 / AC-29: guest customizes, orders, staff accepts (11.1s)
+
+  1 passed (13.8s)

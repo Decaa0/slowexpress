@@ -4,5 +4,5 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: { port: 5173, proxy: { "/api": process.env.VITE_API_TARGET || "http://localhost:4000" } },
-  test: { environment: "jsdom", globals: false },
+  test: { environment: "jsdom", globals: false, include: ["src/**/*.test.{ts,tsx}"] },
 });
