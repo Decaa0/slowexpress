@@ -6,6 +6,9 @@
 | FR-02 | F-01 | 1 | AC-03, AC-04 / TEST-04, TEST-05 |
 | FR-03 | F-02 | 1 | AC-05, AC-06 / TEST-06, TEST-07 |
 | FR-16 | F-02 | 1 | AC-25, AC-26 / TEST-30, TEST-31 |
+| BR-14 | F-04 | 1 | AC-28, AC-29 / TEST-33, TEST-34 |
+| BR-15 | F-04 | 1 | AC-30 / TEST-35 |
+| BR-16 | F-04 | 1 | AC-31 / TEST-36 |
 | BR-12 | F-02 | 1 | AC-26, AC-27 / TEST-31, TEST-32 |
 | FR-17 | F-16 | 2 | planned |
 | FR-18 | F-17 | 2 | planned |

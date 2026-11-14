@@ -16,7 +16,7 @@ Shop 1──* User         (operators only; members have null shopId)
 User 1──* Session            (jti, expiresAt, revokedAt)
 Order.customerId → User (member, nullable) | Order.guestSessionId → GuestSession (nullable); exactly one is set
 Table 1──* GuestSession   Table 1──* Order   Shop 1──* Order
-Order 1──* OrderItem         (menuItemId, itemName, unitPriceCents, quantity, lineTotalCents)
+Order 1──* OrderItem 1──* OrderItemTopping *──1 Topping ; Shop 1──* Topping ;         (menuItemId, itemName, unitPriceCents, quantity, lineTotalCents)
 ```
 | Entity | Key fields and constraints |
 |---|---|
@@ -24,10 +24,12 @@ Order 1──* OrderItem         (menuItemId, itemName, unitPriceCents, quantity
 | Table | id, shopId, label, code (unique, random 12+ chars), active |
 | User | id, email (unique), fullName, passwordHash (bcrypt), role MEMBER/OPERATOR, shopId?, points (Sprint 2) |
 | Session | id, userId, jti (unique), expiresAt, revokedAt? |
-| MenuItem | id, shopId, name, priceCents ≥ 0, available |
+| MenuItem | id, shopId, name, category, imageUrl, priceCents ≥ 0, available |
+| Topping | id, shopId, name, imageUrl, priceCents ≥ 0, available (e.g. strawberry, mango, lychee) |
+| OrderItemTopping | id, orderItemId, toppingId, toppingName, priceCents (snapshot) |
 | GuestSession | id, tableId, jti (unique), expiresAt, revokedAt? |
 | Order | id, customerId?, guestSessionId?, shopId, tableId, note?, status PLACED/ACCEPTED, paymentStatus PENDING, totalCents, createdAt, acceptedAt?, acceptedById? |
-| OrderItem | id, orderId, menuItemId, itemName, unitPriceCents, quantity 1..10, lineTotalCents |
+| OrderItem | id, orderId, menuItemId, itemName, unitPriceCents, quantity 1..10, note ≤ 100 chars, lineTotalCents |
 
 Setup: `prisma db push` (SQLite). Seed is idempotent (upserts): 2 shops (a drink shop and a second shop), 3 tables each, 2 members, 2 operators, 5+ drink menu items including one unavailable.
 

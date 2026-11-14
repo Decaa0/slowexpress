@@ -4,8 +4,8 @@
 |---|---|---|---|---|
 | F-01 | Authentication and session (member/operator login, logout, me) | FR-01, FR-02, NFR-01, NFR-02, NFR-04 | — | 1 |
 | F-02 | Resolve table QR and start guest session | FR-03, FR-16, BR-11, BR-12 | F-01 | 1 |
-| F-03 | Browse table menu | FR-04, BR-04, BR-05 | F-01, F-02 | 1 |
-| F-04 | Place order | FR-05, BR-01..BR-06, BR-10, BR-11, NFR-03 | F-02, F-03 | 1 |
+| F-03 | Browse table menu (drinks, categories, pictures, toppings) | FR-04, BR-04, BR-05 | F-01, F-02 | 1 |
+| F-04 | Place order with toppings and notes | FR-05, BR-01..BR-06, BR-14..BR-16, BR-10, BR-11, NFR-03 | F-02, F-03 | 1 |
 | F-05 | My orders and detail | FR-06, BR-07 | F-04 | 1 |
 | F-06 | Incoming orders and accept | FR-07, FR-08, BR-08, BR-09, BR-10 | F-04 | 1 |
 | F-07 | Kitchen workflow (preparing, served) | FR-09 | F-06 | 2 |

@@ -22,8 +22,8 @@ Excluded: real payment, delivery, self-registration, password recovery, email/SM
 | FR-16 | A guest scanning a valid table code receives a temporary guest session bound to that table; no password needed | 1 |
 | FR-02 | A signed-in user can retrieve their own identity and can log out; a logged-out token is rejected | 1 |
 | FR-03 | A table QR code (opaque table code) resolves to its table and shop; unknown/inactive codes are rejected | 1 |
-| FR-04 | A guest or member views the available menu of the shop that owns the scanned table | 1 |
-| FR-05 | A guest or member places one order with 1..10 line items for a scanned table | 1 |
+| FR-04 | A guest or member views the available menu (drinks grouped by category, with pictures) and the available toppings of the shop that owns the scanned table | 1 |
+| FR-05 | A guest or member places one order with 1..10 line items for a scanned table; each line is a drink with a quantity, 0..3 toppings and an optional note | 1 |
 | FR-06 | A guest (this session) or member (all own orders) lists their own orders and opens one order's detail | 1 |
 | FR-07 | An operator lists the orders of their own shop | 1 |
 | FR-08 | An operator accepts a PLACED order of their own shop | 1 |
@@ -50,6 +50,9 @@ Excluded: real payment, delivery, self-registration, password recovery, email/SM
 | BR-08 | An operator can see and act only on orders of their own shop (other shop = 404) |
 | BR-09 | Only a PLACED order can be accepted; any other status gives 409 INVALID_TRANSITION |
 | BR-10 | Only guests/members can place orders; only operators can accept (wrong role = 403) |
+| BR-14 | A line has at most 3 distinct toppings; each topping must be available and belong to the same shop as the drink |
+| BR-15 | Line total = (drink price + sum of topping prices) × quantity, computed on the server; topping name and price are copied into the line when placed |
+| BR-16 | A line note is at most 100 characters |
 | BR-12 | A guest session is bound to one table and expires in 3 hours; it cannot be used for another table or for operator operations |
 | BR-13 | Points and promotions apply only to members, never guests (Sprint 2) |
 | BR-11 | A table code must exist and be active to be used for an order |
