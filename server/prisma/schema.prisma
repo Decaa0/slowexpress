@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  tables    DiningTable[]
+  menuItems MenuItem[]
+  toppings  Topping[]
+  operators User[]
+  orders    Order[]
+}
+
+model DiningTable {
+  id       String         @id @default(uuid())
+  shopId   String
+  shop     Shop           @relation(fields: [shopId], references: [id])
+  label    String
+  code     String         @unique
+  active   Boolean        @default(true)
+  guests   GuestSession[]
+  orders   Order[]
+
+  @@unique([shopId, label])
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         String    // MEMBER | OPERATOR
+  active       Boolean   @default(true)
+  shopId       String?
+  shop         Shop?     @relation(fields: [shopId], references: [id])
+  sessions     Session[]
+  orders       Order[]   @relation("Member")
+  accepted     Order[]   @relation("AcceptedBy")
+}
+
+model Session {
+  id        String    @id
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  revokedAt DateTime?
+}
+
+model GuestSession {
+  id        String      @id
+  tableId   String
+  table     DiningTable @relation(fields: [tableId], references: [id])
+  expiresAt DateTime
+  revokedAt DateTime?
+  orders    Order[]
+}
+
+model MenuItem {
+  id         String      @id @default(uuid())
+  shopId     String
+  shop       Shop        @relation(fields: [shopId], references: [id])
+  name       String
+  category   String
+  imageKey   String
+  priceCents Int
+  available  Boolean     @default(true)
+  orderItems OrderItem[]
+}
+
+model Topping {
+  id         String             @id @default(uuid())
+  shopId     String
+  shop       Shop               @relation(fields: [shopId], references: [id])
+  name       String
+  imageKey   String
+  priceCents Int
+  available  Boolean            @default(true)
+  lines      OrderItemTopping[]
+}
+
+model Order {
+  id             String        @id @default(uuid())
+  memberId       String?
+  member         User?         @relation("Member", fields: [memberId], references: [id])
+  guestSessionId String?
+  guestSession   GuestSession? @relation(fields: [guestSessionId], references: [id])
+  shopId         String
+  shop           Shop          @relation(fields: [shopId], references: [id])
+  tableId        String
+  table          DiningTable   @relation(fields: [tableId], references: [id])
+  callName       String?
+  status         String        @default("PLACED")
+  paymentStatus  String        @default("PENDING")
+  totalCents     Int
+  createdAt      DateTime      @default(now())
+  acceptedAt     DateTime?
+  acceptedById   String?
+  acceptedBy     User?         @relation("AcceptedBy", fields: [acceptedById], references: [id])
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id             String             @id @default(uuid())
+  orderId        String
+  order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId     String
+  menuItem       MenuItem           @relation(fields: [menuItemId], references: [id])
+  itemName       String
+  unitPriceCents Int
+  quantity       Int
+  note           String?
+  lineTotalCents Int
+  toppings       OrderItemTopping[]
+}
+
+model OrderItemTopping {
+  id          String    @id @default(uuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  toppingId   String
+  topping     Topping   @relation(fields: [toppingId], references: [id])
+  toppingName String
+  priceCents  Int
+}
