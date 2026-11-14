@@ -108,7 +108,7 @@ export default function App() {
   const [tableCode, setTableCode] = useState<string | null>(qrCode ?? sessionStorage.getItem("tableCode"));
   const [shell, setShell] = useState<Shell | null>(null); const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<"menu" | "orders" | "login" | { order: string }>(staffPage ? "orders" : "menu");
-  const [err, setErr] = useState(""); const [ready, setReady] = useState(false);
+  const [err, setErr] = useState(""); const [ready, setReady] = useState(false); const [invalidQr, setInvalidQr] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -119,7 +119,11 @@ export default function App() {
           if (!getSession()) { const g = await api<{ token: string }>("/guest-sessions", { method: "POST", body: { tableCode: qrCode } }); setSession({ token: g.token, kind: "guest" }); }
         }
         if (getSession()?.kind === "user") setUser(await api<User>("/auth/me"));
-      } catch (e) { if (!(e instanceof ApiError && e.status === 401)) setErr((e as Error).message); setSession(null); }
+      } catch (e) {
+        // issue #6: a bad or inactive table code is a normal situation, not a crash. No guest session is created for it.
+        if (qrCode && e instanceof ApiError && e.status === 404) { setInvalidQr(true); setReady(true); return; }
+        if (!(e instanceof ApiError && e.status === 401)) setErr((e as Error).message); setSession(null);
+      }
       setReady(true);
     })();
   }, []);
@@ -132,10 +136,12 @@ export default function App() {
       <h1 style={{ color: G, margin: 0, fontSize: 24 }}>Slow Express{shell ? ` · Table ${shell.table}` : ""}</h1>
       <span>{user ? <>{user.fullName} ({user.role}) <button onClick={logout}>Logout</button></> : !staffPage && <button onClick={() => setView("login")}>Member sign in</button>}</span></header>
     <Err msg={err} />
+    {invalidQr && <div role="alert" style={card}><h2 style={{ marginTop: 0 }}>This QR code is not valid</h2>
+      <p>It may be damaged or switched off. Please ask the staff for help, or scan the code on another table.</p></div>}
     {staffPage && !staff && <Login staff onDone={(u) => { setUser(u); setView("orders"); }} />}
     {staffPage && staff && <Orders staff onOpen={() => {}} />}
-    {!staffPage && !getSession() && <p>Scan a table QR code to start ordering.</p>}
-    {!staffPage && getSession() && <>
+    {!staffPage && !invalidQr && !getSession() && <p>Scan a table QR code to start ordering.</p>}
+    {!staffPage && !invalidQr && getSession() && <>
       <nav style={{ marginBottom: 12 }}><button onClick={() => setView("menu")}>Menu</button> <button onClick={() => setView("orders")}>My orders</button></nav>
       {view === "login" && <Login staff={false} onDone={(u) => { setUser(u); setView("menu"); }} />}
       {view === "menu" && <MenuView tableCode={tableCode} onPlaced={(id) => setView({ order: id })} />}
