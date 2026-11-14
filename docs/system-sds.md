@@ -36,6 +36,13 @@ Setup: `prisma db push` (SQLite). Seed is idempotent (upserts): 2 shops (a drink
 ## 3. UI conventions
 Screens: Sign in → (QR route `/t/<code>` shows shop + table, then Menu) → Cart/Place order → Order detail; My orders; Operator: Incoming orders with Accept. Shared behaviour: loading text, empty-state text, inline `role="alert"` errors showing the API message, disabled place button until the cart has items, estimated total labelled "estimated; server computes final".
 
+### 3.1 Drink customizer (drag a topping onto the cup)
+When the customer taps a drink, a customizer opens with a cup illustration and the shop's topping pictures beside it.
+- **Drag to add:** dragging a topping picture onto the cup adds that topping to this drink; the cup shows the topping as a small icon/layer and the line price updates (estimated).
+- **Touch/keyboard fallback:** tapping a topping also adds it (phones and accessibility), tapping an added topping removes it. Drag-and-drop is an enhancement; the same action must be possible without dragging.
+- **Limits shown in the UI:** at most 3 toppings (BR-14); a 4th is refused with a message; unavailable toppings are greyed and not draggable. The server enforces the same limits, the UI only mirrors them.
+- Quantity 1..10, optional note (100 chars), "Add to cart" puts the configured drink in the cart as one line.
+
 ## 4. API conventions
 JSON only; `Authorization: Bearer <token>`. Errors: `{error:{code,message}}` with codes VALIDATION_ERROR, UNAUTHENTICATED, INVALID_CREDENTIALS, FORBIDDEN, NOT_FOUND, INVALID_TRANSITION, ITEM_UNAVAILABLE, WRONG_RESTAURANT. Status mapping: 400 validation, 401 auth, 403 role, 404 missing or not yours, 409 invalid transition. No stack traces or SQL in responses.
 
