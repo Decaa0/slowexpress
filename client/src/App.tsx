@@ -3,6 +3,7 @@ import { api, ApiError, baht, getSession, setSession, type Menu, type Order, typ
 import Customizer, { type Config } from "./Customizer";
 import Cup from "./Cup";
 
+export const ORDER_REFRESH_MS = 10_000;
 const G = "#0B7A46";
 const card: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 10, padding: 12, marginBottom: 10, background: "#fff" };
 const btn: React.CSSProperties = { background: G, color: "#fff", border: 0, borderRadius: 8, padding: "8px 16px", cursor: "pointer" };
@@ -42,9 +43,19 @@ function Orders({ staff, onOpen }: { staff: boolean; onOpen: (id: string) => voi
     {orders.map((o) => <OrderCard key={o.id} o={o} onOpen={staff ? undefined : () => onOpen(o.id)} onAccept={staff ? () => accept(o.id) : undefined} />)}</div>);
 }
 
-function OrderDetail({ id, onBack }: { id: string; onBack: () => void }) {
+export function OrderDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [o, setO] = useState<Order | null>(null); const [err, setErr] = useState("");
-  useEffect(() => { api<Order>(`/orders/${id}`).then(setO).catch((e) => setErr(e.message)); }, [id]);
+  useEffect(() => {
+    let stopped = false; let timer: ReturnType<typeof setInterval> | undefined;
+    const load = () => api<Order>(`/orders/${id}`).then((x) => {
+      if (stopped) return;
+      setO(x);
+      if (x.status !== "PLACED" && timer) { clearInterval(timer); timer = undefined; } // issue #5: stop once the status has moved on
+    }).catch((e) => { if (stopped) return; setErr(e.message); if (timer) { clearInterval(timer); timer = undefined; } }); // an error (e.g. 404) ends polling
+    load();
+    timer = setInterval(load, ORDER_REFRESH_MS);
+    return () => { stopped = true; if (timer) clearInterval(timer); };
+  }, [id]);
   return (<div><button onClick={onBack}>← Back</button><h2>Order</h2><Err msg={err} />
     {o && <><OrderCard o={o} /><p data-testid="server-total"><b>Total (computed by server): {baht(o.totalCents)}</b> · Payment: {o.paymentStatus}</p></>}</div>);
 }
