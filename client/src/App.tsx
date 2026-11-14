@@ -3,6 +3,7 @@ import { api, ApiError, baht, getSession, setSession, type Menu, type Order, typ
 import Customizer, { type Config } from "./Customizer";
 import Cup from "./Cup";
 
+export const STAFF_REFRESH_MS = 10_000;
 const G = "#0B7A46";
 const card: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 10, padding: 12, marginBottom: 10, background: "#fff" };
 const btn: React.CSSProperties = { background: G, color: "#fff", border: 0, borderRadius: 8, padding: "8px 16px", cursor: "pointer" };
@@ -31,13 +32,18 @@ function OrderCard({ o, onAccept, onOpen }: { o: Order; onAccept?: () => void; o
     {onAccept && o.status === "PLACED" && <button style={btn} onClick={onAccept}>Accept</button>}</div>);
 }
 
-function Orders({ staff, onOpen }: { staff: boolean; onOpen: (id: string) => void }) {
+export function Orders({ staff, onOpen }: { staff: boolean; onOpen: (id: string) => void }) {
   const [orders, setOrders] = useState<Order[] | null>(null); const [err, setErr] = useState("");
   const load = () => api<Order[]>("/orders").then(setOrders).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    if (!staff) return;
+    const timer = setInterval(load, STAFF_REFRESH_MS); // issue #1: new orders appear without a reload
+    return () => clearInterval(timer);
+  }, [staff]);
   async function accept(id: string) { setErr(""); try { await api(`/orders/${id}/accept`, { method: "POST" }); await load(); } catch (x) { setErr((x as Error).message); } }
   if (!orders) return <><Err msg={err} /><p>Loading orders…</p></>;
-  return (<div><h2>{staff ? "Incoming orders" : "My orders"}</h2><Err msg={err} />
+  return (<div><h2>{staff ? "Incoming orders" : "My orders"} {staff && <button onClick={() => load()}>Refresh</button>}</h2><Err msg={err} />
     {orders.length === 0 && <p>No orders yet.</p>}
     {orders.map((o) => <OrderCard key={o.id} o={o} onOpen={staff ? undefined : () => onOpen(o.id)} onAccept={staff ? () => accept(o.id) : undefined} />)}</div>);
 }
