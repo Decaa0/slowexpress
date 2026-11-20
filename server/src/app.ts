@@ -1,4 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import cors from "cors";
 import { ApiError } from "./errors";
 import { authRouter } from "./routes/auth";
@@ -17,6 +19,13 @@ export function createApp() {
   app.use("/api/guest-sessions", guestRouter);
   app.use("/api/menu", menuRouter);
   app.use("/api/orders", ordersRouter);
+  app.use("/api", (_req, _res, next) => next(new ApiError(404, "NOT_FOUND", "Route not found")));
+  // Container/production: serve the built web app from the same origin (the client calls /api).
+  const clientDist = path.resolve(process.env.CLIENT_DIST || "../client/dist");
+  if (existsSync(path.join(clientDist, "index.html"))) {
+    app.use(express.static(clientDist));
+    app.get("*", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
+  }
   app.use((_req, _res, next) => next(new ApiError(404, "NOT_FOUND", "Route not found")));
   // NFR-04: uniform error shape, no stack traces
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
