@@ -5,11 +5,13 @@ import { authRouter } from "./routes/auth";
 import { guestRouter, tablesRouter } from "./routes/tables";
 import { menuRouter } from "./routes/menu";
 import { ordersRouter } from "./routes/orders";
+import { readyRouter } from "./routes/ready";
 
 export function createApp() {
   const app = express();
   app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
   app.use(express.json());
+  app.use("/api", readyRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/tables", tablesRouter);
   app.use("/api/guest-sessions", guestRouter);

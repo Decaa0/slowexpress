@@ -2,11 +2,16 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { prisma } from "./db";
 
-export const DEMO_PASSWORD = "Demo#1234";
+/** Demo-account password comes from the environment, never from code (Lab 5.2 check 2). */
+export function demoPassword(): string {
+  const p = process.env.DEMO_PASSWORD;
+  if (!p) throw new Error("DEMO_PASSWORD is not set (see server/.env.example)");
+  return p;
+}
 
 /** Idempotent synthetic seed data (upserts / find-or-create only). */
 export async function seed() {
-  const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const hash = await bcrypt.hash(demoPassword(), 10);
   const slow = await prisma.shop.upsert({ where: { name: "Slow Express" }, update: {}, create: { name: "Slow Express" } });
   const cafe = await prisma.shop.upsert({ where: { name: "Demo Cafe" }, update: {}, create: { name: "Demo Cafe" } });
 
