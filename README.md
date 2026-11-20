@@ -18,9 +18,15 @@ Demo accounts (synthetic, local only; password is whatever you set as `DEMO_PASS
 ## Printable table QR sheet
 Run `cd server && npm run qr`, then open `docs/qr/index.html` and print on A4. Each active table gets a card with its shop, table label and embedded QR image. Inactive tables are excluded. The default links use localhost (same-computer demo only). For phones, set `PUBLIC_URL` to the reachable web app address before generating, for example `PUBLIC_URL=http://192.168.1.10:5173 npm run qr`; replace that example with your actual address. Regenerate after seeding a fresh database or changing the address. The checked-in HTML is a demo output, not a deployment configuration.
 
+## Run with Docker
+```bash
+cp .env.example .env && docker compose up --build   # then open http://localhost:8080
+```
+See `docs/labs/lab-05/deployment.md` for what each service does.
+
 ## Tests and build
 ```bash
-cd server && npm test        # 37 tests: API/DB integration + readiness + unit + QR sheet (needs the Postgres container above and a test database: docker exec slowexpress-pg psql -U slowexpress -c 'create database slowexpress_test;') (npx tsc --noEmit also passes)
+cd server && npm test        # 39 tests: API/DB integration + readiness + unit + QR sheet (needs the Postgres container above and a test database: docker exec slowexpress-pg psql -U slowexpress -c 'create database slowexpress_test;') (npx tsc --noEmit also passes)
 cd client && npm test        # 10 UI component tests (customizer, refresh, invalid QR)
 cd client && npx playwright install chromium   # once
 cd client && npm run test:e2e   # AC-29 end to end, isolated temp database, ports 4005/5175

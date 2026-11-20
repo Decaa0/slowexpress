@@ -1,7 +1,7 @@
 # Slow Express: deployment guide (Lab 5)
 
-Draft started in Issue "Lab 5.2". Cloud resource names, the release procedure and the smoke-test
-details are completed in Lab 5.5 and Lab 5.7.
+Started in Issue "Lab 5.2", Docker section added in "Lab 5.3". Cloud resource names, the release procedure and the
+smoke-test details are completed in Lab 5.5 and Lab 5.7.
 
 ## 1. Stack
 
@@ -10,7 +10,8 @@ details are completed in Lab 5.5 and Lab 5.7.
 | API | Node.js (v24 on the development machine; the container's Node version is set in Lab 5.3), Express, TypeScript (run with `tsx`) |
 | Database | PostgreSQL 16 (local: Docker container; cloud: Cloud SQL for PostgreSQL) |
 | ORM and migrations | Prisma 5, committed migrations in `server/prisma/migrations/` |
-| Web app | React 18 + Vite (built to static files) |
+| Web app | React 18 + Vite (built to static files and served by the API from the same origin) |
+| Container | One `Dockerfile` (multi-stage, Node 24 alpine, runs as the non-root `node` user, listens on `$PORT`, default 8080) |
 | Tests | Vitest (server and client), Playwright (browser journey AC-29) |
 | Cloud | Google Cloud Run + Cloud SQL, provisioned by the course portal |
 
@@ -52,6 +53,24 @@ Build, test, run, migrate, seed (from `server/` unless stated):
 | Server tests | `npm test` |
 | Type check | `npx tsc --noEmit` |
 | Web app (from `client/`) | `npm run dev`, `npm test`, `npm run build`, `npm run test:e2e` |
+
+## 3b. Run everything with Docker (fresh clone)
+
+```bash
+git clone https://github.com/Decaa0/slowexpress.git && cd slowexpress
+cp .env.example .env            # placeholders for local use; edit if you like
+docker compose up --build       # db + one-off migrate/seed + app
+open http://localhost:8080      # health: /api/health, readiness: /api/ready
+```
+
+| Service | What it does |
+|---|---|
+| `db` | Postgres 16 with a named volume (`slowexpress_pgdata`), so data survives `docker compose restart` and `down` (not `down -v`) |
+| `migrate` | Runs `prisma migrate deploy` then the idempotent seed from the same image, then exits |
+| `app` | The API plus the built web app on port 8080 |
+
+The root `.env.example` feeds `docker-compose.yml` (`POSTGRES_*`, `JWT_SECRET`, `DEMO_PASSWORD`, `APP_PORT`). The image
+contains no secrets: `DATABASE_URL`, `JWT_SECRET` and `DEMO_PASSWORD` arrive as environment variables at run time.
 
 ## 4. Checks the app passes before it runs in the cloud
 
