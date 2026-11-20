@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import bcrypt from "bcryptjs";
-import { api, auth, drink, guest, login, prisma, resetDb, tableCode, topping, DEMO_PASSWORD } from "../helpers";
+import { api, auth, drink, guest, login, prisma, resetDb, tableCode, topping, demoPassword } from "../helpers";
 
 beforeAll(resetDb);
 beforeEach(resetDb);
@@ -10,7 +10,7 @@ const oneDrink = async (extra: object = {}) => ({ items: [{ menuItemId: await dr
 
 describe("F-01 Authentication", () => {
   it("TEST-01 / AC-01: valid login returns token and public user only", async () => {
-    const r = await api().post("/api/auth/login").send({ email: "alice@demo.test", password: DEMO_PASSWORD });
+    const r = await api().post("/api/auth/login").send({ email: "alice@demo.test", password: demoPassword() });
     expect(r.status).toBe(200);
     expect(r.body.token).toBeTruthy();
     expect(r.body.user).toMatchObject({ email: "alice@demo.test", role: "MEMBER" });
@@ -41,8 +41,8 @@ describe("F-01 Authentication", () => {
   });
   it("TEST-05 / AC-05: passwords are stored as bcrypt hashes", async () => {
     const u = await prisma.user.findUniqueOrThrow({ where: { email: "alice@demo.test" } });
-    expect(u.passwordHash).not.toBe(DEMO_PASSWORD);
-    expect(await bcrypt.compare(DEMO_PASSWORD, u.passwordHash)).toBe(true);
+    expect(u.passwordHash).not.toBe(demoPassword());
+    expect(await bcrypt.compare(demoPassword(), u.passwordHash)).toBe(true);
   });
 });
 

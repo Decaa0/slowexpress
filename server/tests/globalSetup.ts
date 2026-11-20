@@ -1,10 +1,10 @@
 import { execSync } from "node:child_process";
-import { rmSync } from "node:fs";
+import { TEST_DATABASE_URL } from "./testEnv";
+
+/** Rebuild an empty Postgres test database from the committed migrations. */
 export default function setup() {
-  rmSync("prisma/test.db", { force: true });
-  rmSync("prisma/test.db-journal", { force: true });
-  execSync("npx prisma db push --skip-generate --force-reset", {
-    env: { ...process.env, DATABASE_URL: "file:./test.db" },
+  execSync("npx prisma migrate reset --force --skip-generate --skip-seed", {
+    env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
     stdio: "ignore",
   });
 }
