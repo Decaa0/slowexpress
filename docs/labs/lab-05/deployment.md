@@ -72,6 +72,22 @@ open http://localhost:8080      # health: /api/health, readiness: /api/ready
 The root `.env.example` feeds `docker-compose.yml` (`POSTGRES_*`, `JWT_SECRET`, `DEMO_PASSWORD`, `APP_PORT`). The image
 contains no secrets: `DATABASE_URL`, `JWT_SECRET` and `DEMO_PASSWORD` arrive as environment variables at run time.
 
+## 3c. Continuous integration (`.github/workflows/ci-docker.yml`)
+
+Workflow "CI & Docker Build", job id **`test-and-docker`** (the required check on `main`, Lab 5.6). It runs on every
+pull request into `lab5-staging` and `main`, manually (`workflow_dispatch`), and as a reusable workflow
+(`workflow_call`, used by the deploy workflow). It never deploys.
+
+| Step | What it proves |
+|---|---|
+| Backend: `npm ci`, `npx tsc --noEmit`, `npm test` | Type check and all server tests against a throw-away Postgres 16 service; the test setup rebuilds an empty database from the committed migrations |
+| Frontend: `npm ci`, `npm test`, `npm run build` | Component tests and the production build |
+| `docker build` | The production `Dockerfile` still builds |
+
+CI uses CI-only values (`TEST_DATABASE_URL` points at the service container with a throw-away password); no repository
+secret is needed. Third-party actions are pinned to a commit SHA. A failing test fails the job, and once the ruleset from
+Lab 5.6 is on, a failing check blocks the merge.
+
 ## 4. Checks the app passes before it runs in the cloud
 
 | Check | Result |
