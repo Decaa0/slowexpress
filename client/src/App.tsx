@@ -88,11 +88,11 @@ function MenuView({ tableCode, onPlaced }: { tableCode: string | null; onPlaced:
     {editDrink && <Customizer key={editDrink.id} drink={editDrink} toppings={menu.toppings} initial={cart.find((c) => c.drink.id === editDrink.id)}
       onClose={() => setEditing(null)} onAdd={(c) => { setCart([...cart.filter((x) => x.drink.id !== c.drink.id), c]); setEditing(null); }} />}
     {menu.categories.length === 0 && <p>No drinks available right now.</p>}
-    {menu.categories.map((cat) => (<div key={cat.name}><h3 style={{ color: G }}>{cat.name}</h3>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>{cat.items.map((d) => (
-        <button key={d.id} onClick={() => setEditing(d.id)} aria-label={`drink ${d.name}`} style={{ ...card, width: 130, textAlign: "center", cursor: "pointer" }}>
-          <div style={{ transform: "scale(.55)", height: 120, marginTop: -40, marginBottom: -30 }}><Cup drinkKey={d.imageKey} toppings={cart.find((c) => c.drink.id === d.id)?.toppingIds.map((id) => tById.get(id)!.imageKey) ?? []} /></div>
-          <div>{d.name}</div><b>{baht(d.priceCents)}</b></button>))}</div></div>))}
+    {menu.categories.map((cat) => (<section key={cat.name} className="menu-section"><h3 className="menu-cat">{cat.name}</h3>
+      <div className="menu-grid">{cat.items.map((d) => (
+        <button key={d.id} className="drink-card" onClick={() => setEditing(d.id)} aria-label={`drink ${d.name}`}>
+          <span className="drink-pic"><Cup height={104} drinkKey={d.imageKey} toppings={cart.find((c) => c.drink.id === d.id)?.toppingIds.map((id) => tById.get(id)!.imageKey) ?? []} /></span>
+          <span className="drink-name">{d.name}</span><b className="drink-price">{baht(d.priceCents)}</b></button>))}</div></section>))}
     <div style={card}><h3>Cart</h3>{cart.length === 0 && <p>Your cart is empty. Tap a drink.</p>}
       {cart.map((c) => (<div key={c.drink.id}>{c.quantity}× {c.drink.name}{c.toppingIds.length ? ` + ${c.toppingIds.map((id) => tById.get(id)?.name).join(", ")}` : ""} — {baht(lineTotal(c))}{" "}
         <a href="#" onClick={(e) => { e.preventDefault(); setCart(cart.filter((x) => x !== c)); }}>remove</a></div>))}

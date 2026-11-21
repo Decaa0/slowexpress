@@ -1,0 +1,29 @@
+/* Slow Express: same green theme (#0B7A46), cleaner cards, phone friendly. */
+:root { --green: #0B7A46; --green-soft: #e9f5ee; --line: #d7e5dc; --ink: #1d2b24; }
+body { margin: 0; background: #f6faf7; color: var(--ink); }
+button { font: inherit; }
+
+.menu-section { margin-bottom: 18px; }
+.menu-cat { color: var(--green); margin: 14px 0 8px; font-size: 18px; letter-spacing: .2px; }
+
+/* Cards sit in a grid that fits the screen width: 2 across on a phone, more on desktop. */
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+
+/* Picture on top, then name, then price: stacked in normal flow so they can never overlap. */
+.drink-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 8px 12px; min-width: 0;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(11, 122, 70, .06);
+  cursor: pointer; text-align: center; color: inherit;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.drink-card:hover, .drink-card:focus-visible { border-color: var(--green); box-shadow: 0 4px 12px rgba(11, 122, 70, .15); transform: translateY(-2px); outline: none; }
+.drink-pic { display: flex; align-items: flex-end; justify-content: center; height: 104px; }
+.drink-name { font-weight: 600; line-height: 1.25; min-height: 2.5em; display: flex; align-items: center; overflow-wrap: anywhere; }
+.drink-price { color: var(--green); font-size: 16px; }
+
+@media (max-width: 480px) {
+  .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .drink-name { font-size: 14px; }
+}

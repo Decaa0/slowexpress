@@ -1,13 +1,16 @@
 const LIQUID: Record<string, string> = {
   "thai-milk-tea": "#e39a52", "taiwan-milk-tea": "#c58a5a", "matcha-latte": "#9bc17a",
   "peach-oolong": "#f4a67c", "lychee-green": "#cfe6a8", americano: "#3b2a20", "mango-sago": "#f7c948", latte: "#d9b38c",
+  "brown-sugar-milk-tea": "#a9714b", "taro-milk-tea": "#c9a9d6", "strawberry-green": "#f08aa0", "passion-fruit": "#f2b632",
+  cappuccino: "#b98a63", "iced-mocha": "#6b4a3a",
 };
 
-/** Cup picture: the drink colour plus one layer per topping. The picture changes as toppings are dropped in. */
-export default function Cup({ drinkKey, toppings }: { drinkKey: string; toppings: string[] }) {
+/** Cup picture: the drink colour plus one layer per topping. The picture changes as toppings are dropped in.
+ *  `height` sizes the picture by layout (no CSS transform), so small menu cards never overlap the text below. */
+export default function Cup({ drinkKey, toppings, height = 220 }: { drinkKey: string; toppings: string[]; height?: number }) {
   const has = (k: string) => toppings.includes(k);
   return (
-    <svg viewBox="0 0 140 220" width="140" height="220" role="img" aria-label={`cup ${drinkKey} with ${toppings.join(", ") || "no toppings"}`} data-toppings={toppings.join(",")}>
+    <svg viewBox="0 0 140 220" width={Math.round((height * 140) / 220)} height={height} role="img" aria-label={`cup ${drinkKey} with ${toppings.join(", ") || "no toppings"}`} data-toppings={toppings.join(",")}>
       <defs><clipPath id="cupclip"><path d="M22 40 L118 40 L106 200 Q105 208 96 208 L44 208 Q35 208 34 200 Z" /></clipPath></defs>
       <path d="M22 40 L118 40 L106 200 Q105 208 96 208 L44 208 Q35 208 34 200 Z" fill="#f5f7f6" stroke="#9aa5a0" strokeWidth="3" />
       <g clipPath="url(#cupclip)">
@@ -20,6 +23,8 @@ export default function Cup({ drinkKey, toppings }: { drinkKey: string; toppings
         )}
         {has("boba") && <g data-testid="layer-boba" fill="#2b1b17">{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <circle key={i} cx={46 + (i % 4) * 16} cy={192 - Math.floor(i / 4) * 14} r="6.5" />)}</g>}
         {has("strawberry") && <g data-testid="layer-strawberry" fill="#e0334c">{[[56, 110], [84, 130], [66, 150]].map(([x, y], i) => <path key={i} d={`M${x} ${y} q8 -4 10 6 q-4 12 -10 14 q-6 -2 -10 -14 q2 -10 10 -6z`} />)}</g>}
+        {has("aloe") && <g data-testid="layer-aloe" fill="#b9e0b0" fillOpacity="0.9" stroke="#8cbf84">{[[48, 176], [70, 184], [92, 174], [58, 158], [82, 160]].map(([x, y], i) => <rect key={i} x={x} y={y} width="14" height="14" rx="2" />)}</g>}
+        {has("whipped") && <g data-testid="layer-whipped" fill="#ffffff" stroke="#e3e8e5"><path d="M10 40 L130 40 L130 60 Q112 74 94 60 T58 60 T22 60 L10 60 Z" /></g>}
         {has("lychee-jelly") && <g data-testid="layer-lychee" fill="#fdfdfb" fillOpacity="0.85" stroke="#d6d9d0">{[[50, 100], [76, 118], [90, 96], [62, 138]].map(([x, y], i) => <rect key={i} x={x} y={y} width="14" height="14" rx="3" />)}</g>}
       </g>
       <rect x="16" y="32" width="108" height="10" rx="4" fill="#dfe6e2" stroke="#9aa5a0" strokeWidth="2" />
