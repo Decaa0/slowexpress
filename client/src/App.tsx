@@ -5,9 +5,6 @@ import Cup from "./Cup";
 
 export const STAFF_REFRESH_MS = 10_000;
 export const ORDER_REFRESH_MS = 10_000;
-const G = "#0B7A46";
-const card: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 10, padding: 12, marginBottom: 10, background: "#fff" };
-const btn: React.CSSProperties = { background: G, color: "#fff", border: 0, borderRadius: 8, padding: "8px 16px", cursor: "pointer" };
 const Err = ({ msg }: { msg: string }) => (msg ? <p role="alert" style={{ color: "#b00020" }}>{msg}</p> : null);
 type Shell = { shop: string; table: string };
 
@@ -18,19 +15,19 @@ function Login({ staff, onDone }: { staff: boolean; onDone: (u: User) => void })
     try { const r = await api<{ token: string; user: User }>("/auth/login", { method: "POST", body: { email, password } }); setSession({ token: r.token, kind: "user" }); onDone(r.user); }
     catch (x) { setErr((x as Error).message); }
   }
-  return (<form onSubmit={submit} style={{ ...card, maxWidth: 340 }}>
+  return (<form onSubmit={submit} className="card login" >
     <h3>{staff ? "Staff sign in" : "Member sign in (points & promotions)"}</h3>
     <label>Email<br /><input aria-label="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: "100%" }} /></label><br />
     <label>Password<br /><input aria-label="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: "100%" }} /></label><br /><br />
-    <button style={btn} type="submit">Sign in</button><Err msg={err} /></form>);
+    <button className="btn" type="submit">Sign in</button><Err msg={err} /></form>);
 }
 
 function OrderCard({ o, onAccept, onOpen }: { o: Order; onAccept?: () => void; onOpen?: () => void }) {
-  return (<div style={card} data-testid={`order-${o.id}`}>
+  return (<div className="card" data-testid={`order-${o.id}`}>
     <b>{o.callName ? `“${o.callName}” · ` : ""}Table {o.table.label}</b> · {o.shop.name} · <b data-testid="status">{o.status}</b> · {baht(o.totalCents)}{" "}
     {onOpen && <a href="#" onClick={(e) => { e.preventDefault(); onOpen(); }}>details</a>}
     <ul style={{ margin: "6px 0" }}>{o.items.map((l) => (<li key={l.menuItemId}>{l.quantity}× {l.itemName}{l.toppings.length ? ` + ${l.toppings.map((t) => t.toppingName).join(", ")}` : ""}{l.note ? ` (${l.note})` : ""} — {baht(l.lineTotalCents)}</li>))}</ul>
-    {onAccept && o.status === "PLACED" && <button style={btn} onClick={onAccept}>Accept</button>}</div>);
+    {onAccept && o.status === "PLACED" && <button className="btn" onClick={onAccept}>Accept</button>}</div>);
 }
 
 export function Orders({ staff, onOpen }: { staff: boolean; onOpen: (id: string) => void }) {
@@ -93,12 +90,12 @@ function MenuView({ tableCode, onPlaced }: { tableCode: string | null; onPlaced:
         <button key={d.id} className="drink-card" onClick={() => setEditing(d.id)} aria-label={`drink ${d.name}`}>
           <span className="drink-pic"><Cup height={104} drinkKey={d.imageKey} toppings={cart.find((c) => c.drink.id === d.id)?.toppingIds.map((id) => tById.get(id)!.imageKey) ?? []} /></span>
           <span className="drink-name">{d.name}</span><b className="drink-price">{baht(d.priceCents)}</b></button>))}</div></section>))}
-    <div style={card}><h3>Cart</h3>{cart.length === 0 && <p>Your cart is empty. Tap a drink.</p>}
+    <div className="card"><h3>Cart</h3>{cart.length === 0 && <p>Your cart is empty. Tap a drink.</p>}
       {cart.map((c) => (<div key={c.drink.id}>{c.quantity}× {c.drink.name}{c.toppingIds.length ? ` + ${c.toppingIds.map((id) => tById.get(id)?.name).join(", ")}` : ""} — {baht(lineTotal(c))}{" "}
         <a href="#" onClick={(e) => { e.preventDefault(); setCart(cart.filter((x) => x !== c)); }}>remove</a></div>))}
       <p><label>Name for calling you <input aria-label="call name" maxLength={20} value={callName} onChange={(e) => setCallName(e.target.value)} placeholder="e.g. Mint" /></label></p>
       <p>Estimated total: <b>{baht(estimate)}</b> <small>(the server computes the final price)</small></p>
-      <button style={btn} disabled={cart.length === 0} onClick={place}>Place order</button><Err msg={err} /></div></div>);
+      <button className="btn" disabled={cart.length === 0} onClick={place}>Place order</button><Err msg={err} /></div></div>);
 }
 
 export default function App() {
@@ -131,18 +128,18 @@ export default function App() {
   async function logout() { try { await api("/auth/logout", { method: "POST" }); } catch { /* already invalid */ } setSession(null); setUser(null); setView(staffPage ? "orders" : "menu"); }
   if (!ready) return <p>Loading…</p>;
   const staff = user?.role === "OPERATOR";
-  return (<div style={{ fontFamily: "system-ui", maxWidth: 760, margin: "0 auto", padding: "10px 12px" }}>
-    <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `3px solid ${G}`, marginBottom: 12, flexWrap: "wrap" }}>
-      <h1 style={{ color: G, margin: 0, fontSize: 24 }}>Slow Express{shell ? ` · Table ${shell.table}` : ""}</h1>
-      <span>{user ? <>{user.fullName} ({user.role}) <button onClick={logout}>Logout</button></> : !staffPage && <button onClick={() => setView("login")}>Member sign in</button>}</span></header>
+  return (<div className="app">
+    <header className="topbar">
+      <h1 className="brand"><svg className="brand-logo" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#0B7A46" /><path d="M7 8h10l-1.2 9a2 2 0 0 1-2 1.7h-3.6a2 2 0 0 1-2-1.7z" fill="#fff" /><path d="M13.5 3.5l1 4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" /></svg><span>Slow Express{shell ? <span className="brand-table"> · Table {shell.table}</span> : ""}</span></h1>
+      <span className="who">{user ? <>{user.fullName} ({user.role}) <button className="btn ghost" onClick={logout}>Logout</button></> : !staffPage && <button className="btn ghost" onClick={() => setView("login")}>Member sign in</button>}</span></header>
     <Err msg={err} />
-    {invalidQr && <div role="alert" style={card}><h2 style={{ marginTop: 0 }}>This QR code is not valid</h2>
+    {invalidQr && <div role="alert" className="card"><h2 style={{ marginTop: 0 }}>This QR code is not valid</h2>
       <p>It may be damaged or switched off. Please ask the staff for help, or scan the code on another table.</p></div>}
     {staffPage && !staff && <Login staff onDone={(u) => { setUser(u); setView("orders"); }} />}
     {staffPage && staff && <Orders staff onOpen={() => {}} />}
     {!staffPage && !invalidQr && !getSession() && <p>Scan a table QR code to start ordering.</p>}
     {!staffPage && !invalidQr && getSession() && <>
-      <nav style={{ marginBottom: 12 }}><button onClick={() => setView("menu")}>Menu</button> <button onClick={() => setView("orders")}>My orders</button></nav>
+      <nav className="tabs"><button className={view === "menu" ? "tab on" : "tab"} aria-current={view === "menu" ? "page" : undefined} onClick={() => setView("menu")}>Menu</button><button className={view === "orders" ? "tab on" : "tab"} aria-current={view === "orders" ? "page" : undefined} onClick={() => setView("orders")}>My orders</button></nav>
       {view === "login" && <Login staff={false} onDone={(u) => { setUser(u); setView("menu"); }} />}
       {view === "menu" && <MenuView tableCode={tableCode} onPlaced={(id) => setView({ order: id })} />}
       {view === "orders" && <Orders staff={false} onOpen={(id) => setView({ order: id })} />}
