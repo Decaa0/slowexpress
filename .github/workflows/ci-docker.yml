@@ -1,0 +1,87 @@
+# CI & Docker Build (Lab 5.4)
+#
+# Runs on every pull request into lab5-staging and main, by hand, and as a reusable
+# workflow (deploy.yml calls it so a deploy only starts after these checks pass).
+# It does NOT deploy anything.
+#
+# The job id `test-and-docker` is the required status check on main (ruleset in Lab 5.6).
+# Do not rename it.
+#
+# Steps: backend tests (real PostgreSQL service) -> frontend tests + build -> the
+# production Dockerfile still builds.
+
+name: CI & Docker Build
+
+on:
+  workflow_call:
+  pull_request:
+    branches: [main, lab5-staging]
+  workflow_dispatch:
+
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
+
+# A newer run on the same ref cancels the older one.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Throw-away PostgreSQL used only by the tests. These are CI-only values, not secrets.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: slowexpress
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: slowexpress_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      # Third-party actions are pinned to a commit SHA; the comment shows the version.
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      # A failing test fails the job, which blocks the merge once the ruleset is on.
+      # The test setup rebuilds the empty database from the committed migrations.
+      - name: Install & test backend (Prisma migrations + Vitest)
+        working-directory: ./server
+        env:
+          TEST_DATABASE_URL: postgresql://slowexpress:ci-only-password@localhost:5432/slowexpress_test
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+
+      - name: Install, test & build frontend (Vitest + production build)
+        working-directory: ./client
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      # Make sure the production image still builds (it is not pushed here).
+      - name: Verify the production Dockerfile builds
+        run: docker build -t slowexpress:ci .

@@ -32,8 +32,8 @@ test('TEST-29 / AC-29: guest customizes, orders, staff accepts', async ({ page, 
     const staff = await staffContext.newPage();
     await staff.goto('http://127.0.0.1:5175/staff');
     await staff.getByLabel('email', { exact: true }).fill('slow@demo.test');
-    // Synthetic seed password, not a real user credential.
-    await staff.getByLabel('password', { exact: true }).fill('Demo#1234');
+    // Synthetic seed password from the environment, not a real user credential.
+    await staff.getByLabel('password', { exact: true }).fill(process.env.DEMO_PASSWORD!);
     await staff.getByRole('button', { name: 'Sign in', exact: true }).click();
     const card = staff.getByTestId(`order-${order.id}`);
     await expect(card).toContainText('AC29 Guest');

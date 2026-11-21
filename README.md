@@ -4,22 +4,29 @@ Customers scan the QR code on their table, order drinks as a **guest** (or sign 
 
 ## Setup
 ```bash
-cd server && cp .env.example .env && npm install
-npx prisma db push && npm run seed     # creates dev.db with synthetic demo data
+docker run -d --name slowexpress-pg -e POSTGRES_USER=slowexpress -e POSTGRES_PASSWORD=localdev -e POSTGRES_DB=slowexpress -p 5433:5432 postgres:16-alpine
+cd server && cp .env.example .env     # then set DATABASE_URL, JWT_SECRET and DEMO_PASSWORD
+npm install && npm run db:migrate && npm run seed   # Postgres schema from the committed migration + synthetic demo data
 npm run qr                             # writes docs/qr/<table>.png and prints each table's link
 npm start                              # API on http://localhost:4000
 cd ../client && npm install && npm run dev   # web app on http://localhost:5173 (proxies /api)
 ```
 Open a printed link (`http://localhost:5173/t/<code>`) or scan a PNG from `docs/qr/`. Staff screen: `http://localhost:5173/staff`.
 
-Demo accounts (synthetic, local only; password is `DEMO_PASSWORD` in `server/src/seedData.ts`): members `alice@demo.test`, `bob@demo.test`; staff `slow@demo.test` (Slow Express), `cafe@demo.test` (Demo Cafe). Guests need no account.
+Demo accounts (synthetic, local only; password is whatever you set as `DEMO_PASSWORD` in `server/.env`; it is never stored in code): members `alice@demo.test`, `bob@demo.test`; staff `slow@demo.test` (Slow Express), `cafe@demo.test` (Demo Cafe). Guests need no account.
 
 ## Printable table QR sheet
 Run `cd server && npm run qr`, then open `docs/qr/index.html` and print on A4. Each active table gets a card with its shop, table label and embedded QR image. Inactive tables are excluded. The default links use localhost (same-computer demo only). For phones, set `PUBLIC_URL` to the reachable web app address before generating, for example `PUBLIC_URL=http://192.168.1.10:5173 npm run qr`; replace that example with your actual address. Regenerate after seeding a fresh database or changing the address. The checked-in HTML is a demo output, not a deployment configuration.
 
+## Run with Docker
+```bash
+cp .env.example .env && docker compose up --build   # then open http://localhost:8080
+```
+See `docs/labs/lab-05/deployment.md` for what each service does.
+
 ## Tests and build
 ```bash
-cd server && npm test        # 34 tests: API/DB integration + unit + QR sheet (npx tsc --noEmit also passes)
+cd server && npm test        # 39 tests: API/DB integration + readiness + unit + QR sheet (needs the Postgres container above and a test database: docker exec slowexpress-pg psql -U slowexpress -c 'create database slowexpress_test;') (npx tsc --noEmit also passes)
 cd client && npm test        # 10 UI component tests (customizer, refresh, invalid QR)
 cd client && npx playwright install chromium   # once
 cd client && npm run test:e2e   # AC-29 end to end, isolated temp database, ports 4005/5175
@@ -35,4 +42,4 @@ cd client && npm run build   # type-check + production build
 `docs/srs.md`, `docs/features.md`, `docs/traceability.md`, `docs/system-sds.md`, `docs/sprints/plan.md`, `docs/sprints/sprint-1/contracts.md` (AC + STS + DoD). TDD evidence in `evidence/` (red before implementation, green after). Screenshots in `evidence/shots/`.
 
 ## Configuration
-`server/.env.example` lists `DATABASE_URL`, `JWT_SECRET`, `PORT`, `CORS_ORIGIN`. Never commit real secrets. Docker, CI/CD and GCP/PostgreSQL arrive in Lab 5.
+`server/.env.example` lists `DATABASE_URL`, `JWT_SECRET`, `DEMO_PASSWORD`, `PORT`, `CORS_ORIGIN`. Never commit real secrets. See `docs/labs/lab-05/deployment.md` for the cloud settings.
