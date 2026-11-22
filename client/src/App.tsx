@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, baht, getSession, setSession, type Menu, type Order, type User } from "./api";
+import { api, ApiError, baht, getSession, setSession, type Menu, type Order, type Rewards, type User } from "./api";
 import Customizer, { type Config } from "./Customizer";
 import Cup from "./Cup";
 
@@ -25,6 +25,7 @@ function Login({ staff, onDone }: { staff: boolean; onDone: (u: User) => void })
 function OrderCard({ o, onAccept, onOpen }: { o: Order; onAccept?: () => void; onOpen?: () => void }) {
   return (<div className="card" data-testid={`order-${o.id}`}>
     <b>{o.callName ? `“${o.callName}” · ` : ""}Table {o.table.label}</b> · {o.shop.name} · <b data-testid="status">{o.status}</b> · {baht(o.totalCents)}{" "}
+    {o.discountCents ? <small className="order-reward">Saved {baht(o.discountCents)} · used {o.pointsRedeemed} points{ o.pointsEarned ? ` · earned ${o.pointsEarned}` : ""}</small> : o.pointsEarned ? <small className="order-reward">Earned {o.pointsEarned} points</small> : null}
     {onOpen && <a href="#" onClick={(e) => { e.preventDefault(); onOpen(); }}>details</a>}
     <ul style={{ margin: "6px 0" }}>{o.items.map((l) => (<li key={l.menuItemId}>{l.quantity}× {l.itemName}{l.toppings.length ? ` + ${l.toppings.map((t) => t.toppingName).join(", ")}` : ""}{l.note ? ` (${l.note})` : ""} — {baht(l.lineTotalCents)}</li>))}</ul>
     {onAccept && o.status === "PLACED" && <button className="btn" onClick={onAccept}>Accept</button>}</div>);
@@ -63,19 +64,35 @@ export function OrderDetail({ id, onBack }: { id: string; onBack: () => void }) 
     {o && <><OrderCard o={o} /><p data-testid="server-total"><b>Total (computed by server): {baht(o.totalCents)}</b> · Payment: {o.paymentStatus}</p></>}</div>);
 }
 
+export function MemberRewards() {
+  const [rewards, setRewards] = useState<Rewards | null>(null);
+  const [err, setErr] = useState("");
+  useEffect(() => { let active = true; api<Rewards>("/auth/rewards").then((r) => { if (active) setRewards(r); }).catch((e) => { if (active) setErr((e as Error).message); }); return () => { active = false; }; }, []);
+  return <section className="card rewards-card" aria-label="Member rewards">
+    <div className="rewards-head"><div><h3>My rewards</h3><p>Earn 1 point for every ฿10 you spend.</p></div><strong className="points-balance">{rewards ? `${rewards.points} points` : "Loading points…"}</strong></div>
+    <p className="reward-rate">100 points = ฿10 off</p>
+    {err && <Err msg={err} />}
+    {rewards?.history.length ? <div><b>Recent rewards</b><ul className="reward-history">{rewards.history.map((h) => <li key={h.id}>{new Date(h.createdAt).toLocaleDateString()} · Earned {h.pointsEarned} points{h.pointsRedeemed ? ` · used ${h.pointsRedeemed} points · saved ${baht(h.discountCents)}` : ""}</li>)}</ul></div> : rewards && <p>No reward activity yet. Place an order to start earning.</p>}
+  </section>;
+}
+
 function MenuView({ tableCode, onPlaced }: { tableCode: string | null; onPlaced: (id: string) => void }) {
   const [menu, setMenu] = useState<Menu | null>(null); const [err, setErr] = useState("");
   const [editing, setEditing] = useState<string | null>(null); const [cart, setCart] = useState<Config[]>([]); const [callName, setCallName] = useState("");
+  const [rewards, setRewards] = useState<Rewards | null>(null); const [redeemPoints, setRedeemPoints] = useState(false);
+  useEffect(() => { if (getSession()?.kind === "user") api<Rewards>("/auth/rewards").then(setRewards).catch(() => setRewards(null)); else setRewards(null); }, []);
   useEffect(() => { api<Menu>(`/menu${getSession()?.kind === "user" && tableCode ? `?tableCode=${tableCode}` : ""}`).then(setMenu).catch((e) => setErr(e.message)); }, [tableCode]);
   if (!menu) return <><Err msg={err} /><p>Loading menu…</p></>;
   const tById = new Map(menu.toppings.map((t) => [t.id, t]));
   const lineTotal = (c: Config) => (c.drink.priceCents + c.toppingIds.reduce((s, id) => s + (tById.get(id)?.priceCents ?? 0), 0)) * c.quantity;
   const estimate = cart.reduce((s, c) => s + lineTotal(c), 0);
+  const pointsRedeemedPreview = redeemPoints && rewards ? Math.min(rewards.points, Math.floor(estimate / 10)) : 0;
+  const discountPreview = pointsRedeemedPreview * 10;
   const drinks = menu.categories.flatMap((c) => c.items);
   async function place() {
     setErr("");
     try {
-      const body = { tableCode: getSession()?.kind === "user" ? tableCode : undefined, callName: callName || undefined,
+      const body = { tableCode: getSession()?.kind === "user" ? tableCode : undefined, callName: callName || undefined, redeemPoints,
         items: cart.map((c) => ({ menuItemId: c.drink.id, quantity: c.quantity, toppingIds: c.toppingIds, note: c.note || undefined })) };
       const o = await api<Order>("/orders", { method: "POST", body }); setCart([]); onPlaced(o.id);
     } catch (x) { setErr((x as ApiError).message); }
@@ -88,13 +105,14 @@ function MenuView({ tableCode, onPlaced }: { tableCode: string | null; onPlaced:
     {menu.categories.map((cat) => (<section key={cat.name} className="menu-section"><h3 className="menu-cat">{cat.name}</h3>
       <div className="menu-grid">{cat.items.map((d) => (
         <button key={d.id} className="drink-card" onClick={() => setEditing(d.id)} aria-label={`drink ${d.name}`}>
-          <span className="drink-pic"><Cup height={104} drinkKey={d.imageKey} toppings={cart.find((c) => c.drink.id === d.id)?.toppingIds.map((id) => tById.get(id)!.imageKey) ?? []} /></span>
+          <span className="drink-pic"><Cup height={122} drinkKey={d.imageKey} toppings={cart.find((c) => c.drink.id === d.id)?.toppingIds.map((id) => tById.get(id)!.imageKey) ?? []} /></span>
           <span className="drink-name">{d.name}</span><b className="drink-price">{baht(d.priceCents)}</b></button>))}</div></section>))}
     <div className="card"><h3>Cart</h3>{cart.length === 0 && <p>Your cart is empty. Tap a drink.</p>}
       {cart.map((c) => (<div key={c.drink.id}>{c.quantity}× {c.drink.name}{c.toppingIds.length ? ` + ${c.toppingIds.map((id) => tById.get(id)?.name).join(", ")}` : ""} — {baht(lineTotal(c))}{" "}
         <a href="#" onClick={(e) => { e.preventDefault(); setCart(cart.filter((x) => x !== c)); }}>remove</a></div>))}
       <p><label>Name for calling you <input aria-label="call name" maxLength={20} value={callName} onChange={(e) => setCallName(e.target.value)} placeholder="e.g. Mint" /></label></p>
-      <p>Estimated total: <b>{baht(estimate)}</b> <small>(the server computes the final price)</small></p>
+      <p>Estimated subtotal: <b>{baht(estimate)}</b> <small>(the server computes the final price)</small></p>
+      {getSession()?.kind === "user" && rewards && <div className="redeem-box"><label><input type="checkbox" aria-label="Use reward points" disabled={rewards.points === 0 || estimate === 0} checked={redeemPoints} onChange={(e) => setRedeemPoints(e.target.checked)} /> Use points ({rewards.points} available)</label><small>100 points = ฿10 off. Discount applies to this order only.</small>{redeemPoints && <p className="redeem-preview">Using {pointsRedeemedPreview} points · discount −{baht(discountPreview)} · total {baht(Math.max(0, estimate - discountPreview))}</p>}</div>}
       <button className="btn" disabled={cart.length === 0} onClick={place}>Place order</button><Err msg={err} /></div></div>);
 }
 
@@ -115,7 +133,15 @@ export default function App() {
           setShell({ shop: t.shop.name, table: t.table.label }); sessionStorage.setItem("tableCode", qrCode);
           if (!getSession()) { const g = await api<{ token: string }>("/guest-sessions", { method: "POST", body: { tableCode: qrCode } }); setSession({ token: g.token, kind: "guest" }); }
         }
-        if (getSession()?.kind === "user") setUser(await api<User>("/auth/me"));
+        if (getSession()?.kind === "user") {
+          try { setUser(await api<User>("/auth/me")); }
+          catch (e) {
+            // A saved member login that the server no longer accepts: drop it and, on a table link, carry on as a guest.
+            if (!(e instanceof ApiError && e.status === 401)) throw e;
+            setSession(null);
+            if (qrCode) { const g = await api<{ token: string }>("/guest-sessions", { method: "POST", body: { tableCode: qrCode } }); setSession({ token: g.token, kind: "guest" }); }
+          }
+        }
       } catch (e) {
         // issue #6: a bad or inactive table code is a normal situation, not a crash. No guest session is created for it.
         if (qrCode && e instanceof ApiError && e.status === 404) { setInvalidQr(true); setReady(true); return; }
@@ -130,9 +156,10 @@ export default function App() {
   const staff = user?.role === "OPERATOR";
   return (<div className="app">
     <header className="topbar">
-      <h1 className="brand"><svg className="brand-logo" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#0B7A46" /><path d="M7 8h10l-1.2 9a2 2 0 0 1-2 1.7h-3.6a2 2 0 0 1-2-1.7z" fill="#fff" /><path d="M13.5 3.5l1 4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" /></svg><span>Slow Express{shell ? <span className="brand-table"> · Table {shell.table}</span> : ""}</span></h1>
+      <h1 className="brand"><svg className="brand-logo" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#F2B300" /><path d="M7 8h10l-1.2 9a2 2 0 0 1-2 1.7h-3.6a2 2 0 0 1-2-1.7z" fill="#2f2200" /><path d="M13.5 3.5l1 4" stroke="#2f2200" strokeWidth="1.6" strokeLinecap="round" /></svg><span>Slow Express{shell ? <span className="brand-table"> · Table {shell.table}</span> : ""}</span></h1>
       <span className="who">{user ? <>{user.fullName} ({user.role}) <button className="btn ghost" onClick={logout}>Logout</button></> : !staffPage && <button className="btn ghost" onClick={() => setView("login")}>Member sign in</button>}</span></header>
     <Err msg={err} />
+    {!staffPage && user?.role === "MEMBER" && <MemberRewards key={typeof view === "object" ? view.order : view} />}
     {invalidQr && <div role="alert" className="card"><h2 style={{ marginTop: 0 }}>This QR code is not valid</h2>
       <p>It may be damaged or switched off. Please ask the staff for help, or scan the code on another table.</p></div>}
     {staffPage && !staff && <Login staff onDone={(u) => { setUser(u); setView("orders"); }} />}

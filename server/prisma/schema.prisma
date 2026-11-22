@@ -37,6 +37,7 @@ model User {
   fullName     String
   role         String    // MEMBER | OPERATOR
   active       Boolean   @default(true)
+  points       Int       @default(0)
   shopId       String?
   shop         Shop?     @relation(fields: [shopId], references: [id])
   sessions     Session[]
@@ -98,6 +99,10 @@ model Order {
   status         String        @default("PLACED")
   paymentStatus  String        @default("PENDING")
   totalCents     Int
+  subtotalCents  Int           @default(0)
+  discountCents  Int           @default(0)
+  pointsRedeemed Int           @default(0)
+  pointsEarned   Int           @default(0)
   createdAt      DateTime      @default(now())
   acceptedAt     DateTime?
   acceptedById   String?
