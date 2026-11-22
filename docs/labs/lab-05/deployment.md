@@ -99,17 +99,37 @@ Lab 5.6 is on, a failing check blocks the merge.
 | Port from `PORT` | `server/src/index.ts` reads `PORT`. |
 | `/api/ready` | Returns 200 when the database answers and 503 when it does not; `/api/health` is the liveness check. |
 
-## 5. Cloud resources (to be completed in Lab 5.5)
+## 5. Cloud resources (from the course portal, Lab 5.5)
 
 | Item | Value |
 |---|---|
 | Project | `cpe-se-course-2026` |
 | Region | `asia-southeast1` |
 | Team prefix | `sa3454e86` |
-| Cloud Run service, migration job, registry, secret slots | Filled in from the portal's Team resources tab in Lab 5.5 |
+| Cloud Run service | `sa3454e86` (URL `https://sa3454e86-4d7hbszvwq-as.a.run.app`) |
+| Migration job | `sa3454e86-migrate` |
+| Cloud SQL instance | `sa3454e86-pg` (one instance, PostgreSQL) |
+| Artifact Registry repository | `sa3454e86` |
+| Runtime service account | `sa3454e86-runner@cpe-se-course-2026.iam.gserviceaccount.com` |
+| Deployer service account | `sa3454e86-deployer@cpe-se-course-2026.iam.gserviceaccount.com` (used through Workload Identity, no key file) |
+| Secret names (values never in Git) | `sa3454e86-database-url`, `sa3454e86-admin-password`, `sa3454e86-demo-password`, slots `sa3454e86-app-secret-1` to `5` |
 
-## 6. Release procedure (to be completed in Lab 5.7)
+GitHub environment `demo` holds four variables, none of them secret: `GCP_PROJECT_ID`, `GCP_REGION`,
+`WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`. `MIGRATE_COMMAND` is `npx prisma migrate deploy`.
+The app also needs `JWT_SECRET` at run time; it is stored in a secret slot, never in an environment
+variable that is committed.
 
-Feature branch, pull request into `lab5-staging`, reviewed; release pull request from `lab5-staging`
-into `main`; the pipeline tests, builds the image tagged by commit SHA, runs the migration job,
-deploys to Cloud Run and smoke-tests `/api/ready`. How to read the running commit is added in Lab 5.7.
+## 6. Release procedure (Lab 5.7)
+
+1. Open an Issue labelled `lab5`; branch from `lab5-staging` (`feature/<name>`).
+2. Open a pull request into `lab5-staging` with the same title as the Issue. CI (`test-and-docker`) must pass and a
+   reviewer approves; then the pull request is merged.
+3. Open a release pull request from `lab5-staging` into `main`. The `protect-main` ruleset needs the
+   `test-and-docker` check and one approval.
+4. Merging into `main` starts `.github/workflows/deploy.yml` ("Deploy to Google Cloud"). It signs in with
+   Workload Identity (no key), builds the Dockerfile, tags the image with the commit SHA, pushes it to
+   Artifact Registry, runs `npx prisma migrate deploy` in the `sa3454e86-migrate` job and deploys the
+   Cloud Run service `sa3454e86`.
+5. Check the release: open the Actions run summary (it prints the image and URL), then
+   `https://sa3454e86-4d7hbszvwq-as.a.run.app/api/ready` must answer 200. The running image tag is the full
+   commit SHA of the release commit.
