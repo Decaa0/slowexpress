@@ -249,3 +249,22 @@ describe("F-06 Operator orders and accept", () => {
     expect((await prisma.order.findUniqueOrThrow({ where: { id: o.body.id } })).status).toBe("PLACED");
   });
 });
+
+describe("F-07 member rewards", () => {
+  it("earns persistent points, redeems only available points and records reward history", async () => {
+    const token = await login("alice@demo.test");
+    await prisma.user.update({ where: { email: "alice@demo.test" }, data: { points: 350 } });
+    const r = await api().post("/api/orders").set(auth(token)).send({ tableCode: await tableCode("SE-1"), redeemPoints: true, items: [{ menuItemId: await drink("Thai Milk Tea"), quantity: 1, toppingIds: [] }] });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ subtotalCents: 4500, discountCents: 3500, pointsRedeemed: 350, pointsEarned: 1, totalCents: 1000 });
+    const rewards = await api().get("/api/auth/rewards").set(auth(token));
+    expect(rewards.body).toMatchObject({ points: 1, redemptionRate: 100 });
+    expect(rewards.body.history[0]).toMatchObject({ id: r.body.id, discountCents: 3500, pointsRedeemed: 350, pointsEarned: 1 });
+  });
+  it("rejects redemption by guests without creating an order", async () => {
+    const g = await guest();
+    const r = await api().post("/api/orders").set(auth(g)).send({ redeemPoints: true, items: [{ menuItemId: await drink("Thai Milk Tea"), quantity: 1, toppingIds: [] }] });
+    expect(r.status).toBe(403);
+    expect(await prisma.order.count()).toBe(0);
+  });
+});

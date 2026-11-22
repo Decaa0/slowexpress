@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "discountCents" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "pointsEarned" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "pointsRedeemed" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "subtotalCents" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "points" INTEGER NOT NULL DEFAULT 0;
