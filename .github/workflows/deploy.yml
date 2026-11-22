@@ -26,6 +26,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Roll back or roll forward: the full 40-character commit SHA of an image this workflow already built. Leave empty to build and deploy the current main."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -53,6 +59,8 @@ jobs:
       IMAGE_NAME: sa3454e86
       APP_PORT: ${{ vars.APP_PORT }}
       MIGRATE_COMMAND: ${{ vars.MIGRATE_COMMAND }}
+      # Empty on a normal push to main. Set when someone runs the workflow by hand to roll back or forward.
+      IMAGE_TAG_INPUT: ${{ github.event.inputs.image_tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -76,7 +84,21 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
+      - name: Check image_tag (rollback or roll forward)
+        if: env.IMAGE_TAG_INPUT != ''
+        run: |
+          [[ "$IMAGE_TAG_INPUT" =~ ^[0-9a-f]{40}$ ]] || { echo "image_tag must be a full 40-character commit SHA (copy it from an earlier Deploy run summary)"; exit 1; }
+
+      - name: Use an image that already exists (no test, no build, no migration)
+        if: env.IMAGE_TAG_INPUT != ''
+        run: |
+          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG_INPUT"
+          gcloud artifacts docker images describe "$IMAGE" --project "$PROJECT_ID" > /dev/null \
+            || { echo "No image $IMAGE. That commit never built an image: use the image tag from a successful Deploy run."; exit 1; }
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
       - name: Build and push the image
+        if: env.IMAGE_TAG_INPUT == ''
         run: |
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
           IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA"
@@ -88,7 +110,7 @@ jobs:
       # It points the migrate job of your team at the new image, then runs your command and waits for it to finish.
       # The deploy below only happens if the migration succeeds.
       - name: Run database migration (optional)
-        if: env.MIGRATE_COMMAND != ''
+        if: env.MIGRATE_COMMAND != '' && env.IMAGE_TAG_INPUT == ''
         run: |
           gcloud run jobs update "$MIGRATE_JOB_NAME" --image "$IMAGE" --region "$REGION" --project "$PROJECT_ID" \
             --command=sh --args="^@@^-c@@$MIGRATE_COMMAND" --quiet
@@ -105,6 +127,7 @@ jobs:
           URL="$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --project "$PROJECT_ID" --format='value(status.url)')"
           {
             echo '### Deployed'
+            if [ -n "$IMAGE_TAG_INPUT" ]; then echo "- Mode: existing image (rollback or roll forward), build and migration skipped"; else echo "- Mode: build and deploy the current main"; fi
             echo "- Image: \`$IMAGE\`"
             echo "- URL: $URL"
           } >> "$GITHUB_STEP_SUMMARY"

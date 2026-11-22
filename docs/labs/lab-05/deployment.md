@@ -133,3 +133,19 @@ variable that is committed.
 5. Check the release: open the Actions run summary (it prints the image and URL), then
    `https://sa3454e86-4d7hbszvwq-as.a.run.app/api/ready` must answer 200. The running image tag is the full
    commit SHA of the release commit.
+
+## 7. Roll back and roll forward (Lab 5.8)
+
+Rollback puts an older app image back. It does not touch the database.
+
+1. Find the full 40-character commit SHA of the release you want: open its **Deploy to Google Cloud** run in the
+   Actions tab; the summary lists the image, and the image tag is that SHA.
+2. Actions, **Deploy to Google Cloud**, **Run workflow**, branch `main`, paste the SHA into `image_tag`, run it.
+3. In the run, the build and migration steps are skipped and the deploy step passes. In the Cloud Run console the
+   newest revision of `sa3454e86` has 100% of the traffic and uses that image.
+4. Roll forward the same way with the newer SHA. Leave `image_tag` empty to build and deploy the current `main`.
+5. Check that data written before the rollback is still there (`https://sa3454e86-4d7hbszvwq-as.a.run.app/api/ready`
+   must answer 200, and an earlier order must still open).
+
+A short or unknown SHA stops the run with a message (it must be a full SHA that an earlier run built). A rollback is
+safe for data when the newer release's database migration only adds columns, as release B's does.
