@@ -6,3 +6,6 @@ dist
 .DS_Store
 client/test-results
 client/playwright-report
+
+# Lab 5.8 record check: holds a demo login token
+docs/labs/lab-05/rollback_record_state.json
