@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { randomBytes } from "node:crypto";
 import { prisma } from "./db";
 
 /** Demo-account password comes from the environment, never from code (Lab 5.2 check 2). */
@@ -17,8 +16,12 @@ export async function seed() {
 
   const tables: [string, string][] = [[slow.id, "SE-1"], [slow.id, "SE-2"], [slow.id, "SE-3"], [cafe.id, "DC-1"], [cafe.id, "DC-2"]];
   for (const [shopId, label] of tables) {
+    // Fixed, known codes for the demo tables (e.g. demo-se-1) so the menu link and its QR can be printed before the
+    // first deploy. These are synthetic demo tables; the code is only a demo link, not a secret.
+    const code = `demo-${label.toLowerCase()}`;
     const t = await prisma.diningTable.findFirst({ where: { shopId, label } });
-    if (!t) await prisma.diningTable.create({ data: { shopId, label, code: randomBytes(9).toString("hex") } });
+    if (!t) await prisma.diningTable.create({ data: { shopId, label, code } });
+    else if (t.code !== code) await prisma.diningTable.update({ where: { id: t.id }, data: { code } });
   }
 
   const users = [
