@@ -37,6 +37,13 @@ export async function seed() {
     { shopId: slow.id, name: "Lychee Green Tea", category: "Fruit Tea", imageKey: "lychee-green", priceCents: 5500, available: true },
     { shopId: slow.id, name: "Americano", category: "Coffee", imageKey: "americano", priceCents: 4500, available: true },
     { shopId: slow.id, name: "Mango Sago", category: "Fruit Tea", imageKey: "mango-sago", priceCents: 6500, available: false },
+    // Release B: more drinks per category. The loop below only creates a drink that does not exist yet, so the seed is safe to run twice.
+    { shopId: slow.id, name: "Brown Sugar Milk Tea", category: "Milk Tea", imageKey: "brown-sugar-milk-tea", priceCents: 5500, available: true },
+    { shopId: slow.id, name: "Taro Milk Tea", category: "Milk Tea", imageKey: "taro-milk-tea", priceCents: 5500, available: true },
+    { shopId: slow.id, name: "Strawberry Green Tea", category: "Fruit Tea", imageKey: "strawberry-green", priceCents: 6000, available: true },
+    { shopId: slow.id, name: "Passion Fruit Tea", category: "Fruit Tea", imageKey: "passion-fruit", priceCents: 5500, available: true },
+    { shopId: slow.id, name: "Cappuccino", category: "Coffee", imageKey: "cappuccino", priceCents: 5500, available: true },
+    { shopId: slow.id, name: "Iced Mocha", category: "Coffee", imageKey: "iced-mocha", priceCents: 6000, available: true },
     { shopId: cafe.id, name: "Cafe Latte", category: "Coffee", imageKey: "latte", priceCents: 6500, available: true },
   ];
   for (const d of drinks) if (!(await prisma.menuItem.findFirst({ where: { shopId: d.shopId, name: d.name } }))) await prisma.menuItem.create({ data: d });

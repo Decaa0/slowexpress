@@ -8,7 +8,7 @@ export function lineTotal(l: LineInput): number {
 export const LIMITS = { maxLines: 10, maxQty: 10, maxToppings: 3, maxNote: 100, maxCallName: 20 } as const;
 
 export type ParsedLine = { menuItemId: string; quantity: number; toppingIds: string[]; note: string | null };
-export type ParsedOrder = { callName: string | null; tableCode: string | null; items: ParsedLine[] };
+export type ParsedOrder = { callName: string | null; tableCode: string | null; redeemPoints: boolean; items: ParsedLine[] };
 
 /** BR-02, BR-03, BR-14, BR-16, BR-17: pure shape and boundary validation (no DB). */
 export function validateOrderBody(b: unknown): { ok: boolean; error?: string; value?: ParsedOrder } {
@@ -22,6 +22,7 @@ export function validateOrderBody(b: unknown): { ok: boolean; error?: string; va
     if (typeof body.callName !== "string" || body.callName.length > LIMITS.maxCallName) return fail(`callName must be at most ${LIMITS.maxCallName} characters`);
     callName = body.callName.trim() || null;
   }
+  if (body.redeemPoints !== undefined && typeof body.redeemPoints !== "boolean") return fail("redeemPoints must be a boolean");
   const seen = new Set<string>();
   const items: ParsedLine[] = [];
   for (const l of body.items) {
@@ -36,5 +37,5 @@ export function validateOrderBody(b: unknown): { ok: boolean; error?: string; va
     if (l.note !== undefined && l.note !== null && (typeof l.note !== "string" || l.note.length > LIMITS.maxNote)) return fail(`note must be at most ${LIMITS.maxNote} characters`);
     items.push({ menuItemId: l.menuItemId, quantity: l.quantity, toppingIds, note: l.note ? String(l.note) : null });
   }
-  return { ok: true, value: { callName, tableCode: typeof body.tableCode === "string" ? body.tableCode : null, items } };
+  return { ok: true, value: { callName, tableCode: typeof body.tableCode === "string" ? body.tableCode : null, redeemPoints: body.redeemPoints === true, items } };
 }

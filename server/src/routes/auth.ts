@@ -25,10 +25,27 @@ authRouter.post("/login", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-authRouter.get("/me", requireAuth, (req, res, next) => {
-  const p = req.principal!;
-  if (p.kind === "guest") return next(new ApiError(403, "FORBIDDEN", "Guests have no account"));
-  res.json(publicUser(p));
+authRouter.get("/me", requireAuth, async (req, res, next) => {
+  try {
+    const p = req.principal!;
+    if (p.kind === "guest") throw new ApiError(403, "FORBIDDEN", "Guests have no account");
+    const u = await prisma.user.findUnique({ where: { id: p.id }, select: { id: true, email: true, fullName: true, role: true, shopId: true, points: true } });
+    if (!u) throw new ApiError(401, "UNAUTHENTICATED", "Account not found");
+    res.json({ ...u, points: u.role === "MEMBER" ? u.points : undefined });
+  } catch (e) { next(e); }
+});
+
+authRouter.get("/rewards", requireAuth, async (req, res, next) => {
+  try {
+    const p = req.principal!;
+    if (p.kind !== "user" || p.role !== "MEMBER") throw new ApiError(403, "FORBIDDEN", "Member account required");
+    const [user, orders] = await Promise.all([
+      prisma.user.findUnique({ where: { id: p.id }, select: { points: true } }),
+      prisma.order.findMany({ where: { memberId: p.id, OR: [{ pointsEarned: { gt: 0 } }, { pointsRedeemed: { gt: 0 } }] }, select: { id: true, createdAt: true, totalCents: true, discountCents: true, pointsEarned: true, pointsRedeemed: true }, orderBy: { createdAt: "desc" }, take: 10 }),
+    ]);
+    if (!user) throw new ApiError(401, "UNAUTHENTICATED", "Account not found");
+    res.json({ points: user.points, redemptionRate: 100, history: orders });
+  } catch (e) { next(e); }
 });
 
 authRouter.post("/logout", requireAuth, async (req, res, next) => {
