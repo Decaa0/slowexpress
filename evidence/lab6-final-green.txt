@@ -1,0 +1,5 @@
+branch fix/6.1-uat-major-defects (PR #39), after DEF-SE-03 fix
+server full: 8 files, 50 tests passed (includes 3 new shopName tests); tsc OK
+client full: 9 files, 26 tests passed (includes 2 ShopBanner + 4 Lab6Defects); tsc OK; build OK
+Playwright E2E TEST-29 / AC-29: 1 passed (10.8s)
+Local Postgres 16 (docker container slowexpress-pg, port 5433, db slowexpress_test)

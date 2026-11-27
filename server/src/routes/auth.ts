@@ -8,14 +8,14 @@ import { config } from "../config";
 import { requireAuth } from "../middleware/auth";
 
 export const authRouter = Router();
-const publicUser = (u: { id: string; email: string; fullName: string; role: string; shopId: string | null }) =>
-  ({ id: u.id, email: u.email, fullName: u.fullName, role: u.role, shopId: u.shopId });
+const publicUser = (u: { id: string; email: string; fullName: string; role: string; shopId: string | null; shop?: { name: string } | null }) =>
+  ({ id: u.id, email: u.email, fullName: u.fullName, role: u.role, shopId: u.shopId, shopName: u.shop?.name ?? null });
 
 authRouter.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body ?? {};
     if (typeof email !== "string" || typeof password !== "string" || !email || !password) throw new ApiError(400, "VALIDATION_ERROR", "email and password are required");
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email }, include: { shop: true } });
     const ok = user && user.active && (await bcrypt.compare(password, user.passwordHash));
     if (!user || !ok) throw new ApiError(401, "INVALID_CREDENTIALS", "Invalid email or password");
     const jti = randomUUID();
@@ -29,9 +29,10 @@ authRouter.get("/me", requireAuth, async (req, res, next) => {
   try {
     const p = req.principal!;
     if (p.kind === "guest") throw new ApiError(403, "FORBIDDEN", "Guests have no account");
-    const u = await prisma.user.findUnique({ where: { id: p.id }, select: { id: true, email: true, fullName: true, role: true, shopId: true, points: true } });
+    const u = await prisma.user.findUnique({ where: { id: p.id }, select: { id: true, email: true, fullName: true, role: true, shopId: true, points: true, shop: { select: { name: true } } } });
     if (!u) throw new ApiError(401, "UNAUTHENTICATED", "Account not found");
-    res.json({ ...u, points: u.role === "MEMBER" ? u.points : undefined });
+    const { shop, ...rest } = u;
+    res.json({ ...rest, shopName: shop?.name ?? null, points: u.role === "MEMBER" ? u.points : undefined });
   } catch (e) { next(e); }
 });
 
