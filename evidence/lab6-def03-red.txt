@@ -1,0 +1,15 @@
+base: fix/6.1 branch 719f69c + tests only
+server: npx vitest run tests/api/shopName.test.ts
+   × shop name for operators (DEF-SE-03) > login returns the operator's shop name 141ms
+   × shop name for operators (DEF-SE-03) > /auth/me returns the operator's shop name and never passwordHash 68ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected undefined to be 'Slow Express' // Object.is equality
+AssertionError: expected undefined to be 'Demo Cafe' // Object.is equality
+      Tests  2 failed | 1 passed (3)
+client: npx vitest run src/ShopBanner.test.tsx
+   × DEF-SE-03: shop name in the banner > staff page of a Demo Cafe operator shows Demo Cafe 19ms
+   × DEF-SE-03: shop name in the banner > table page of Demo Cafe shows Demo Cafe, Table DC-1 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 'Slow Express' to contain 'Demo Cafe'
+AssertionError: expected 'Slow Express · Table DC-1' to contain 'Demo Cafe'
+      Tests  2 failed (2)

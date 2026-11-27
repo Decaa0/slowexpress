@@ -3,7 +3,7 @@ export type Drink = { id: string; name: string; priceCents: number; imageKey: st
 export type Menu = { shop: { id: string; name: string }; categories: { name: string; items: Drink[] }[]; toppings: Topping[] };
 export type OrderLine = { menuItemId: string; itemName: string; unitPriceCents: number; quantity: number; note: string | null; toppings: { toppingId: string; toppingName: string; priceCents: number }[]; lineTotalCents: number };
 export type Order = { id: string; status: string; paymentStatus: string; totalCents: number; subtotalCents?: number; discountCents?: number; pointsRedeemed?: number; pointsEarned?: number; callName: string | null; shop: { name: string }; table: { label: string }; createdAt: string; items: OrderLine[] };
-export type User = { id: string; fullName: string; role: "MEMBER" | "OPERATOR"; shopId: string | null; points?: number };
+export type User = { id: string; fullName: string; role: "MEMBER" | "OPERATOR"; shopId: string | null; shopName?: string | null; points?: number };
 export type RewardHistory = { id: string; createdAt: string; totalCents: number; discountCents: number; pointsEarned: number; pointsRedeemed: number };
 export type Rewards = { points: number; redemptionRate: number; history: RewardHistory[] };
 

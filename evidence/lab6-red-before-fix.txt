@@ -1,0 +1,17 @@
+   × DEF-SE-01: opening a different table link must not reuse the previous table's guest session > creates a new guest session for demo-dc-1 after demo-se-1 24ms
+   × DEF-SE-02: logging out on a table link returns to a working guest session > logout normally keeps the menu and Member sign in usable 1014ms
+   × DEF-SE-02: logging out on a table link returns to a working guest session > logout when the request is aborted keeps the menu and Member sign in usable 1010ms
+ FAIL  src/Lab6Defects.test.tsx > DEF-SE-01: opening a different table link must not reuse the previous table's guest session > creates a new guest session for demo-dc-1 after demo-se-1
+AssertionError: expected [ 'demo-se-1' ] to deeply equal [ 'demo-se-1', 'demo-dc-1' ]
+- Expected
++ Received
+ FAIL  src/Lab6Defects.test.tsx > DEF-SE-02: logging out on a table link returns to a working guest session > logout normally keeps the menu and Member sign in usable
+ FAIL  src/Lab6Defects.test.tsx > DEF-SE-02: logging out on a table link returns to a working guest session > logout when the request is aborted keeps the menu and Member sign in usable
+AssertionError: expected undefined to be 'guest' // Object.is equality
+- Expected: 
++ Received: 
+commit: 47a6648 (main 47a6648 + test only)
+cmd: cd client && npx vitest run src/Lab6Defects.test.tsx
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
