@@ -123,14 +123,17 @@ export default function App() {
   const [tableCode, setTableCode] = useState<string | null>(qrCode ?? sessionStorage.getItem("tableCode"));
   const [shell, setShell] = useState<Shell | null>(null); const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<"menu" | "orders" | "login" | { order: string }>(staffPage ? "orders" : "menu");
-  const [err, setErr] = useState(""); const [ready, setReady] = useState(false); const [invalidQr, setInvalidQr] = useState(false);
+  const [, rerender] = useState(0); const [err, setErr] = useState(""); const [ready, setReady] = useState(false); const [invalidQr, setInvalidQr] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         if (qrCode) {
           const t = await api<{ shop: { name: string }; table: { label: string } }>(`/tables/${encodeURIComponent(qrCode)}`);
-          setShell({ shop: t.shop.name, table: t.table.label }); sessionStorage.setItem("tableCode", qrCode);
+          setShell({ shop: t.shop.name, table: t.table.label });
+          // DEF-SE-01: a guest session is bound to the table it was created for. A different table link must not reuse it.
+          if (getSession()?.kind === "guest" && sessionStorage.getItem("tableCode") !== qrCode) setSession(null);
+          sessionStorage.setItem("tableCode", qrCode);
           if (!getSession()) { const g = await api<{ token: string }>("/guest-sessions", { method: "POST", body: { tableCode: qrCode } }); setSession({ token: g.token, kind: "guest" }); }
         }
         if (getSession()?.kind === "user") {
@@ -151,12 +154,20 @@ export default function App() {
     })();
   }, []);
 
-  async function logout() { try { await api("/auth/logout", { method: "POST" }); } catch { /* already invalid */ } setSession(null); setUser(null); setView(staffPage ? "orders" : "menu"); }
+  async function logout() {
+    try { await api("/auth/logout", { method: "POST" }); } catch { /* already invalid or the request was aborted: still sign out locally */ }
+    setSession(null); setUser(null); setView(staffPage ? "orders" : "menu");
+    // DEF-SE-02: on a table page, go back to a guest session so the menu and "Member sign in" keep working.
+    if (!staffPage && tableCode) {
+      try { const g = await api<{ token: string }>("/guest-sessions", { method: "POST", body: { tableCode } }); setSession({ token: g.token, kind: "guest" }); } catch { /* the table link is no longer valid: stay signed out */ }
+      rerender((n) => n + 1);
+    }
+  }
   if (!ready) return <p>Loading…</p>;
   const staff = user?.role === "OPERATOR";
   return (<div className="app">
     <header className="topbar">
-      <h1 className="brand"><svg className="brand-logo" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#F2B300" /><path d="M7 8h10l-1.2 9a2 2 0 0 1-2 1.7h-3.6a2 2 0 0 1-2-1.7z" fill="#2f2200" /><path d="M13.5 3.5l1 4" stroke="#2f2200" strokeWidth="1.6" strokeLinecap="round" /></svg><span>Slow Express{shell ? <span className="brand-table"> · Table {shell.table}</span> : ""}</span></h1>
+      <h1 className="brand"><svg className="brand-logo" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#F2B300" /><path d="M7 8h10l-1.2 9a2 2 0 0 1-2 1.7h-3.6a2 2 0 0 1-2-1.7z" fill="#2f2200" /><path d="M13.5 3.5l1 4" stroke="#2f2200" strokeWidth="1.6" strokeLinecap="round" /></svg><span>{(!staffPage && shell?.shop) || user?.shopName || "Slow Express"}{shell && !staffPage ? <span className="brand-table"> · Table {shell.table}</span> : ""}</span></h1>
       <span className="who">{user ? <>{user.fullName} ({user.role}) <button className="btn ghost" onClick={logout}>Logout</button></> : !staffPage && <button className="btn ghost" onClick={() => setView("login")}>Member sign in</button>}</span></header>
     <Err msg={err} />
     {!staffPage && user?.role === "MEMBER" && <MemberRewards key={typeof view === "object" ? view.order : view} />}
